@@ -1,4 +1,5 @@
-//Firday 20th of June, 2025
+//Abstract class for all emulator cores.
+//Friday 20th of June, 2025
 #pragma once
 
 namespace Cores{
