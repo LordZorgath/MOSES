@@ -10,7 +10,7 @@ cmake --build ./
 Run instructions:
 
 ```
-./MOSES --core <core> -f </path/to/game/>`` 
+./MOSES --core <core> -f </path/to/game/>```
 Optional commands: `-sc <integer scaling factor> --vol <volume as a %>`
 
-Currently, the only two cores are `chip8` and `xochip`. 
+Currently, the only two cores are `chip8` and `xochip`. `xochip-fast` runs the core at 200,000 instructions per second instead of 1,000, this is needed for some games.
