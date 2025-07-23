@@ -733,7 +733,7 @@ namespace Cores::Xochip{
 			cpu.getDebugInfo();
 		}
 		
-		System(int argc, std::string* args):Module("XO-Chip", 200000, 128, 64, 1, 44100, 60.0){
+		System(int argc, std::string* args, int speed):Module("XO-Chip", speed, 128, 64, 1, 44100, 60.0){
 			frameBuffer.resize(128*64);
 			bool fileArg = false;
 			for(int i = 0; i < argc; i++){

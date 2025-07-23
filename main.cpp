@@ -110,7 +110,11 @@ int main(int argc, char* argv[]){
 				}
 				if(arguments[1] == "xochip"){
 					coreSet = true;
-					sys = new Cores::Xochip::System(argc, arguments);
+					sys = new Cores::Xochip::System(argc, arguments, 1000);
+				}
+				if(arguments[1] == "xochip-fast"){
+					coreSet = true;
+					sys = new Cores::Xochip::System(argc, arguments, 200000);
 				}
 				if(!(sys -> checkInit())){
 					SDL_Quit();
