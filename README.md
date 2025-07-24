@@ -7,6 +7,7 @@ MOSES is an experimental multi-system emulator, focused mainly, but not exclusiv
 ```
 git clone https://github.com/LordZorgath/MOSES
 mkdir build && cd build
+cmake ../
 cmake --build ./
 ```
 # Run instructions:
