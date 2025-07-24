@@ -61,7 +61,7 @@ namespace Cores{
 		bool fileFound = false;
 		bool doWriteLog = false;
 		const bool *keyCodes;
-		int16_t audioSamples[2940];
+		int16_t *audioSamples;
 		float volume = 0.25;
 		int audioPhase = 0;
 		
@@ -87,6 +87,8 @@ namespace Cores{
 		
 		Module(std::string n, int f, int w, int h, int channels, int samples, double fps){
 			winArgs = new WindowArgs(w, h, 1, channels, samples, fps);
+			int32_t samplesPerFrame = 2*channels*samples/fps;
+			audioSamples = new int16_t[samplesPerFrame];
 			name = n;
 			bclk = f;
 			srand(69);

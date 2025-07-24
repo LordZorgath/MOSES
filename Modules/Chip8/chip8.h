@@ -513,7 +513,7 @@ namespace Cores::Chip8{
 		public:
 		
 		int16_t* playAudio() override{
-			ulong sampleFreq = winArgs -> getSampleFrequency();
+			uint32_t sampleFreq = winArgs -> getSampleFrequency();
 			double targetFPS = winArgs -> getFPS();
 			audioPhase %= sampleFreq;
 			if(cpu.getSound()){

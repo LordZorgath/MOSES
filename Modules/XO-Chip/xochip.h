@@ -11,6 +11,7 @@ namespace Cores::Xochip{
 	
 		public:
 		uint8_t flagStore[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		uint8_t audBuffer[16] = {0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255};
 		void loadROM(std::vector<uint8_t> rom){
 			for(uint i = 0; i < rom.size(); i++){
 				mem[0x200+i] = rom[i];
@@ -142,7 +143,7 @@ namespace Cores::Xochip{
 		//XO-Chip interpreter.
 		
 		private:
-		float freq = 440;
+		uint32_t pitch = 56200;
 		//Register definitions
 		uint8_t v[16];
 		uint16_t i = 0;
@@ -170,7 +171,7 @@ namespace Cores::Xochip{
 		}
 		
 		float getFreq(){
-			return freq;
+			return pitch;
 		}
 		
 		int getScreenX(){
@@ -505,6 +506,9 @@ namespace Cores::Xochip{
 								planeSelect = ((curOpcode & 0x0F00) >> 8);
 								break;
 							case 0x02: //AUDIO
+								for(int a = 0; a < 16; a++){
+									bus.audBuffer[a] = bus.read(i+a);
+								}
 								break;
 							case 0x07: //LD
 								v[(curOpcode & 0x0F00) >> 8] = dt;
@@ -550,7 +554,7 @@ namespace Cores::Xochip{
 								bus.write(refA % 10, i+2);
 								break;
 							case 0x3A: //PITCH
-								freq = 4000*pow(2, ((v[((curOpcode & 0x0F00) >> 8)]-64)/48)); //This is probably wrong somehow
+								pitch = 4000.0*pow(2.0, ((v[((curOpcode & 0x0F00) >> 8)]-64.0)/48.0));
 								break;
 							case 0x55: //LD
 								for(int a = 0; a <= ((curOpcode & 0x0F00) >> 8); a++){
@@ -652,6 +656,10 @@ namespace Cores::Xochip{
 			0xFF008888
 		};
 		
+		float lerp(float a, float b, float t){
+			return a + t * (b - a);
+		}
+		
 		void drawFrame(){
 			if(cpu.hiresMode){
 				for(int y = 0; y < 64; y++){
@@ -691,27 +699,30 @@ namespace Cores::Xochip{
 		public:
 		
 		int16_t* playAudio() override{
-			ulong sampleFreq = winArgs -> getSampleFrequency();
-			int numChannels = winArgs -> getAudioChannels();
+			uint32_t sampleFreq = winArgs -> getSampleFrequency();
 			double targetFPS = winArgs -> getFPS();
-			audioPhase %= sampleFreq;
 			if(cpu.getSound()){
-				for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
-					double time = i/(double)sampleFreq;
-					for(int c = 0; c < numChannels; c++){
-						audioSamples[(i-audioPhase)*numChannels+c] = std::sin(cpu.getFreq()*time)*(volume * 32767);
+				float stepSize = (cpu.getFreq()/sampleFreq);
+				bool samples[128];
+				audioPhase %= sampleFreq;
+				for(int i = 0; i < 16; i++){
+					for(int j = 7; j >= 0; j--){
+						samples[i+(7-j)] = (bus.audBuffer[i] & (1 << j));
 					}
+				}
+				for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
+					audioSamples[(i-audioPhase)] = volume * (samples[(uint8_t)floor(i*stepSize)&127] ? 32767 : -32767);
 				}
 				audioPhase += (sampleFreq/targetFPS);
 			}else{
-				for(int i = 0; i < (sampleFreq/targetFPS)*numChannels; i++){
+				for(uint32_t i = 0; i < (sampleFreq/targetFPS); i++){
 					audioSamples[i] = 0;
 				}
 				audioPhase = 0;
 			}
 			return audioSamples;
 		}
-		
+
 		void runCycle() override{
 			getKey();
 			cpu.release = keyRelease;
@@ -733,7 +744,7 @@ namespace Cores::Xochip{
 			cpu.getDebugInfo();
 		}
 		
-		System(int argc, std::string* args, int speed):Module("XO-Chip", speed, 128, 64, 1, 44100, 60.0){
+		System(int argc, std::string* args, int speed):Module("XO-Chip", speed, 128, 64, 1, 48000, 60.0){
 			frameBuffer.resize(128*64);
 			bool fileArg = false;
 			for(int i = 0; i < argc; i++){

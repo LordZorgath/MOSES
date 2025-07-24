@@ -193,7 +193,7 @@ int main(int argc, char* argv[]){
 							debugPause = false;
 							break;
 						case SDLK_UP:
-							sys -> debugStep = (sys -> debugStep >= pow(2, 31)) ? pow(2, 31) : sys -> debugStep * 2;
+							sys -> debugStep = fmin(pow(2, 31), sys -> debugStep * 2);
 							std::cout << "DBG SPEED: " << +(sys -> debugStep) << "\n";
 							break;
 						case SDLK_DOWN:
