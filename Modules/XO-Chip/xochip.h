@@ -172,7 +172,7 @@ namespace Cores::Xochip{
 			return (st > 0);
 		}
 		
-		float getFreq(){
+		float getPitch(){
 			return pitch;
 		}
 		
@@ -703,21 +703,39 @@ namespace Cores::Xochip{
 			cpu.key[15] = keyCodes[SDL_SCANCODE_V];
 		}
 		
+		int16_t* audioFiltered;
+		void filter(int16_t* input){
+			audioFiltered = new int16_t[(sizeof(input)/2)];
+			for(int i = 0; i < (sizeof(input)/2); i++){
+				audioFiltered[i] = 0;
+			}
+			double coeff[7] = {
+				0.097504799312435886,
+				-0.126662449793209425,
+				0.146257198968653801,
+				0.765800903024239310,
+				0.146257198968653801,
+				-0.126662449793209425,
+				0.097504799312435886
+			};
+			for(int i = 0; i < (sizeof(input)/2); i++){
+				for(int j = 0; j < 7; j++){
+					audioFiltered[i] += (i > 7) ? 0 : input[i-j] * coeff[j];
+				}
+			}
+		}
+		
 		public:
 		
 		int16_t* playAudio() override{
 			uint32_t sampleFreq = winArgs -> getSampleFrequency();
 			double targetFPS = winArgs -> getFPS();
 			if(cpu.getSound()){
-				float stepSize = (cpu.getFreq()/sampleFreq);
+				float stepSize = (cpu.getPitch()/sampleFreq);
 				bool samples[128];
 				audioPhase %= sampleFreq;
-				int length = (int)(sampleFreq/targetFPS);
-				int16_t audioFilter[length];
-				for(int i = 0; i < 16; i++){
-					for(int j = 7; j >= 0; j--){
-						samples[i+(7-j)] = (bus.audBuffer[i] & (1 << j));
-					}
+				for(int i = 0; i < 128; i++){
+					samples[i] = (bus.audBuffer[i/8] & (1 << (8-(i % 8))));
 				}
 				for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
 					audioSamples[(i-audioPhase)] = volume * (samples[(uint8_t)floor(i*stepSize)&127] ? 32767 : -32767);
