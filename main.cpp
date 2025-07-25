@@ -85,6 +85,7 @@ int main(int argc, char* argv[]){
 	bool coreSet = false;
 	std::vector<bool> keyState;
 	bool debugPause = false;
+	bool dbgPauseEnable = true;
 	Module *sys;
 	WindowArgs *winArgs;
 	double targetFPS = 60.0;
@@ -174,6 +175,15 @@ int main(int argc, char* argv[]){
 					b++;
 					sys -> debugStep = stoi(arguments[b]);
 				}
+				if(arguments[b] == "--breakpoint"){
+					b++;
+					if(stoi(arguments[b]) < 1){
+						std::cout << "GURU MEDITATION invalid breakpoint\n";
+					}else{
+						sys -> breakpointActive = true;
+						sys -> setPcBreakpoint (stoi(arguments[b]));
+					}
+				}
 				b++;
 			}
 		}
@@ -189,6 +199,9 @@ int main(int argc, char* argv[]){
 				if(sys -> dbg){
 					std::cout << std::hex;
 					switch(event.key.key){
+						case SDLK_RSHIFT:
+							dbgPauseEnable = !dbgPauseEnable;
+							break;
 						case SDLK_SPACE:
 							debugPause = false;
 							break;
@@ -226,9 +239,11 @@ int main(int argc, char* argv[]){
 			break;
 		}
 		if(sys -> dbg){
-			if(!debugPause){
+			if(!debugPause && dbgPauseEnable){
 				sys -> debugCycle();
 				debugPause = true;
+			}else if(!dbgPauseEnable){
+				sys -> debugCycle();
 			}
 		}else{
 			sys -> runCycle();

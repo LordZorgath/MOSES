@@ -153,6 +153,7 @@ namespace Cores::Xochip{
 		uint8_t st = 0; //Sound timer
 
 		//Variables for the interpreter
+		int planeSelect = 1;
 		uint16_t curOpcode;
 		uint16_t curOpcodeMSB;
 		uint16_t stack[16];
@@ -160,11 +161,12 @@ namespace Cores::Xochip{
 		
 		public:
 		bool key[16];
-		uint8_t tempKey = 16;
-		bool release = true;
-		uint8_t display[128][64];
 		bool hiresMode = false;
-		int planeSelect = 1;
+		bool release = true;
+		bool breakpointReached = false;
+		uint8_t display[128][64];
+		uint8_t tempKey = 16;
+		uint64_t pcBreakpoint;
 		
 		bool getSound(){
 			return (st > 0);
@@ -209,15 +211,6 @@ namespace Cores::Xochip{
 			for(int i = 0; i < 16; i++){
 				std::cout << "V" << i << " " << +v[i] << "\n";
 			}
-		}
-		
-		inline int popcnt(int n){ //Shamelessly stolen from the internet. Credit to Brian Kernighan!
-			int cnt = 0;
-			while(n){
-				n &= n - 1;
-				cnt++;
-			}
-			return cnt;
 		}
 		
 		inline void tick(uint32_t steps){
@@ -633,6 +626,24 @@ namespace Cores::Xochip{
 			return ret.str();
 		}
 		
+		void breakpointTick(uint32_t steps){
+			for(int a = 0; a < steps; a++){
+				if(!breakpointReached){
+					tick(1);
+					loggedTicks++;
+					if(pc == pcBreakpoint){
+						std::cout << "BREAKPOINT REACHED\n";
+						std::cout << "TICKS " << +loggedTicks;
+						getDebugInfo();
+						breakpointReached = true;
+						return;
+					}
+				}else{
+					return;
+				}
+			}
+		}
+		
 	} cpu;
 
 	class System:public Module{
@@ -655,10 +666,6 @@ namespace Cores::Xochip{
 			0xFF880088,
 			0xFF008888
 		};
-		
-		float lerp(float a, float b, float t){
-			return a + t * (b - a);
-		}
 		
 		void drawFrame(){
 			if(cpu.hiresMode){
@@ -705,6 +712,8 @@ namespace Cores::Xochip{
 				float stepSize = (cpu.getFreq()/sampleFreq);
 				bool samples[128];
 				audioPhase %= sampleFreq;
+				int length = (int)(sampleFreq/targetFPS);
+				int16_t audioFilter[length];
 				for(int i = 0; i < 16; i++){
 					for(int j = 7; j >= 0; j--){
 						samples[i+(7-j)] = (bus.audBuffer[i] & (1 << j));
@@ -734,14 +743,22 @@ namespace Cores::Xochip{
 		void debugCycle() override{
 			getKey();
 			cpu.release = keyRelease;
+			cpu.pcBreakpoint = pcBreakpoint;
 			if(doWriteLog){
 				writeLogToFile(cpu.loggedTick(debugStep));
 			}else{
-				cpu.tick(debugStep);
+				if(breakpointActive){
+					cpu.breakpointTick(debugStep);
+					cpu.decTimers();
+				}else{
+					if(!cpu.breakpointReached){
+						cpu.tick(debugStep);
+						cpu.decTimers();
+						cpu.getDebugInfo();
+					}
+				}
 			}
 			drawFrame();
-			cpu.decTimers();
-			cpu.getDebugInfo();
 		}
 		
 		System(int argc, std::string* args, int speed):Module("XO-Chip", speed, 128, 64, 1, 48000, 60.0){

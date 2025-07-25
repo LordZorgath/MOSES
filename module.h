@@ -47,10 +47,9 @@ namespace Cores{
 	
 	class Module{
 		
-		private:
-		
 		protected:
-		uint bclk;
+		uint64_t pcBreakpoint; 
+		uint64_t bclk;
 		WindowArgs *winArgs;
 		std::string name;
 		std::string outFile;
@@ -97,7 +96,12 @@ namespace Cores{
 		public:
 		uint32_t debugStep = 1;
 		bool keyRelease = false;
+		bool breakpointActive = false;
 		bool dbg = false;
+		
+		void setPcBreakpoint(uint64_t i){
+			pcBreakpoint = i;
+		}
 		
 		void setLogOutput(std::string fileName){
 			outFile = fileName;
