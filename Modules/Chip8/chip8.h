@@ -289,8 +289,8 @@ namespace Cores::Chip8{
 								v[15] = flagRef;
 								break;
 							case 0x6: //SHR
-								flagRef = (v[((curOpcode & 0x0F00) >> 8)] & 0b00000001);
-								v[((curOpcode & 0x0F00) >> 8)] = v[((curOpcode & 0x00F0) >> 4)] >> 1;
+								flagRef = (v[((curOpcode & 0x00F0) >> 4)] & 0b00000001);
+								v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] >> 1);
 								v[15] = flagRef;
 								break;
 							case 0x7: //SUBN
@@ -299,8 +299,8 @@ namespace Cores::Chip8{
 								v[15] = flagRef;
 								break;
 							case 0xE: //SHL
-								flagRef = ((v[((curOpcode & 0x00F0) >> 4)] & 0b10000000) >> 7);
-								v[((curOpcode & 0x0F00) >> 8)] = v[((curOpcode & 0x00F0) >> 4)] << 1;
+								flagRef = (v[((curOpcode & 0x00F0) >> 4)] >> 7);
+								v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] << 1);
 								v[15] = flagRef;
 								break;
 							default:

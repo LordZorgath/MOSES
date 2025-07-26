@@ -201,17 +201,18 @@ int main(int argc, char* argv[]){
 					switch(event.key.key){
 						case SDLK_RSHIFT:
 							dbgPauseEnable = !dbgPauseEnable;
+							std::cout << (dbgPauseEnable ? "STOP\n" : "RUN\n");
 							break;
 						case SDLK_SPACE:
 							debugPause = false;
 							break;
 						case SDLK_UP:
 							sys -> debugStep = fmin(pow(2, 31), sys -> debugStep * 2);
-							std::cout << "DBG SPEED: " << +(sys -> debugStep) << "\n";
+							std::cout << "DBG SPEED " << +(sys -> debugStep) << "\n";
 							break;
 						case SDLK_DOWN:
 							sys -> debugStep = fmax(1, sys -> debugStep / 2);
-							std::cout << "DBG SPEED: " << +(sys -> debugStep) << "\n";
+							std::cout << "DBG SPEED " << +(sys -> debugStep) << "\n";
 							break;
 					}
 				}

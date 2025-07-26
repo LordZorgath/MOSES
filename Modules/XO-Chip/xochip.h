@@ -12,6 +12,14 @@ namespace Cores::Xochip{
 		public:
 		uint8_t flagStore[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 		uint8_t audBuffer[16] = {0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255};
+		bool samples[128];
+	
+		void patternUpdate(){
+			for(int i = 0; i < 128; i++){
+				samples[i] = (audBuffer[i/8] & (1 << (8-(i % 8))));
+			}
+		}
+		
 		void loadROM(std::vector<uint8_t> rom){
 			for(uint i = 0; i < rom.size(); i++){
 				mem[0x200+i] = rom[i];
@@ -143,7 +151,7 @@ namespace Cores::Xochip{
 		//XO-Chip interpreter.
 		
 		private:
-		uint32_t pitch = 56200;
+		float pitch = 4000;
 		//Register definitions
 		uint8_t v[16];
 		uint16_t i = 0;
@@ -193,6 +201,29 @@ namespace Cores::Xochip{
 			}
 		}
 		
+		std::string returnDebugInfo(){
+			std::stringstream ret;
+			ret << std::hex << std::endl;
+			ret << "KEY ";
+			for(int i = 0; i < 16; i++){
+				if(key[i]){
+					ret << +i;
+				}
+			}
+			ret << "\n";
+			ret << "PC " << pc << "\n";
+			ret << "OP " << curOpcode << "\n";
+			ret << "SP " << +sp << "\n";
+			ret << "DT " << +dt << "\n";
+			ret << "I " << i << "\n";
+			ret << "PLANE " << planeSelect << "\n";
+			ret << "PITCH " << pitch << "\n";
+			for(int i = 0; i < 16; i++){
+				ret << "V" << i << " " << +v[i] << "\n";
+			}
+			return ret.str();
+		}
+		
 		void getDebugInfo(){
 			std::cout << std::hex << std::endl;
 			std::cout << "KEY ";
@@ -208,6 +239,7 @@ namespace Cores::Xochip{
 			std::cout << "DT " << +dt << "\n";
 			std::cout << "I " << i << "\n";
 			std::cout << "PLANE " << planeSelect << "\n";
+			std::cout << "PITCH " << pitch << "\n";
 			for(int i = 0; i < 16; i++){
 				std::cout << "V" << i << " " << +v[i] << "\n";
 			}
@@ -236,6 +268,7 @@ namespace Cores::Xochip{
 							case 0x00EE: //RET
 								if(sp == 0){
 									std::cout << "GURU MEDITATION return outside of subroutine\n";
+									getDebugInfo();
 								}else{
 									sp--;
 									pc = stack[sp];
@@ -375,6 +408,7 @@ namespace Cores::Xochip{
 								break;
 							default:
 								std::cout << "GURU MEDITATION unknown opcode\n";
+								getDebugInfo();
 								break;
 						}
 						break;
@@ -409,8 +443,8 @@ namespace Cores::Xochip{
 								v[15] = flagRef;
 								break;
 							case 0x6: //SHR
-								flagRef = (v[((curOpcode & 0x0F00) >> 8)] & 0b00000001);
-								v[((curOpcode & 0x0F00) >> 8)] = v[((curOpcode & 0x00F0) >> 4)] >> 1;
+								flagRef = (v[((curOpcode & 0x00F0) >> 4)] & 0b00000001);
+								v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] >> 1);
 								v[15] = flagRef;
 								break;
 							case 0x7: //SUBN
@@ -419,8 +453,8 @@ namespace Cores::Xochip{
 								v[15] = flagRef;
 								break;
 							case 0xE: //SHL
-								flagRef = ((v[((curOpcode & 0x00F0) >> 4)] & 0b10000000) >> 7);
-								v[((curOpcode & 0x0F00) >> 8)] = v[((curOpcode & 0x00F0) >> 4)] << 1;
+								flagRef = (v[((curOpcode & 0x00F0) >> 4)] >> 7);
+								v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] << 1);
 								v[15] = flagRef;
 								break;
 							default:
@@ -490,11 +524,12 @@ namespace Cores::Xochip{
 						}
 						break;
 					case 0x0F:
+						if(curOpcode == 0xF000){ //LONG
+							i = bus.read16(pc);
+							pc+=2;
+							break;
+						}
 						switch(curOpcode & 0x00FF){
-							case 0x00: //LONG
-								i = bus.read16(pc);
-								pc+=2;
-								break;
 							case 0x01: //DW
 								planeSelect = ((curOpcode & 0x0F00) >> 8);
 								break;
@@ -502,9 +537,10 @@ namespace Cores::Xochip{
 								for(int a = 0; a < 16; a++){
 									bus.audBuffer[a] = bus.read(i+a);
 								}
+								bus.patternUpdate();
 								break;
 							case 0x07: //LD
-								v[(curOpcode & 0x0F00) >> 8] = dt;
+								v[((curOpcode & 0x0F00) >> 8)] = dt;
 								break;
 							case 0x0A: //LD
 								if(!release){
@@ -547,7 +583,7 @@ namespace Cores::Xochip{
 								bus.write(refA % 10, i+2);
 								break;
 							case 0x3A: //PITCH
-								pitch = 4000.0*pow(2.0, ((v[((curOpcode & 0x0F00) >> 8)]-64.0)/48.0));
+								pitch = 4000.0f*pow(2.0f, ((v[((curOpcode & 0x0F00) >> 8)]-64.0f)/48.0f));
 								break;
 							case 0x55: //LD
 								for(int a = 0; a <= ((curOpcode & 0x0F00) >> 8); a++){
@@ -585,7 +621,7 @@ namespace Cores::Xochip{
 			}
 		}
 		
-		inline std::string loggedTick(uint32_t steps){
+		std::string loggedTick(uint32_t steps){
 			std::stringstream ret;
 			for(int a = 0; a < steps; a++){
 				ret << std::hex << std::setfill('0') << "[" << std::setw(8) << +loggedTicks << "] ";
@@ -643,7 +679,6 @@ namespace Cores::Xochip{
 				}
 			}
 		}
-		
 	} cpu;
 
 	class System:public Module{
@@ -666,6 +701,7 @@ namespace Cores::Xochip{
 			0xFF880088,
 			0xFF008888
 		};
+		uint64_t framesTicked = 0;
 		
 		void drawFrame(){
 			if(cpu.hiresMode){
@@ -703,42 +739,16 @@ namespace Cores::Xochip{
 			cpu.key[15] = keyCodes[SDL_SCANCODE_V];
 		}
 		
-		int16_t* audioFiltered;
-		void filter(int16_t* input){
-			audioFiltered = new int16_t[(sizeof(input)/2)];
-			for(int i = 0; i < (sizeof(input)/2); i++){
-				audioFiltered[i] = 0;
-			}
-			double coeff[7] = {
-				0.097504799312435886,
-				-0.126662449793209425,
-				0.146257198968653801,
-				0.765800903024239310,
-				0.146257198968653801,
-				-0.126662449793209425,
-				0.097504799312435886
-			};
-			for(int i = 0; i < (sizeof(input)/2); i++){
-				for(int j = 0; j < 7; j++){
-					audioFiltered[i] += (i > 7) ? 0 : input[i-j] * coeff[j];
-				}
-			}
-		}
-		
 		public:
 		
 		int16_t* playAudio() override{
 			uint32_t sampleFreq = winArgs -> getSampleFrequency();
 			double targetFPS = winArgs -> getFPS();
 			if(cpu.getSound()){
-				float stepSize = (cpu.getPitch()/sampleFreq);
-				bool samples[128];
+				double stepSize = (cpu.getPitch()/sampleFreq);
 				audioPhase %= sampleFreq;
-				for(int i = 0; i < 128; i++){
-					samples[i] = (bus.audBuffer[i/8] & (1 << (8-(i % 8))));
-				}
 				for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
-					audioSamples[(i-audioPhase)] = volume * (samples[(uint8_t)floor(i*stepSize)&127] ? 32767 : -32767);
+					audioSamples[(i-audioPhase)] = volume * (bus.samples[(uint32_t)(i*stepSize)&127] ? 32767 : -32767);
 				}
 				audioPhase += (sampleFreq/targetFPS);
 			}else{
@@ -764,10 +774,12 @@ namespace Cores::Xochip{
 			cpu.pcBreakpoint = pcBreakpoint;
 			if(doWriteLog){
 				writeLogToFile(cpu.loggedTick(debugStep));
+				cpu.decTimers();
 			}else{
 				if(breakpointActive){
 					cpu.breakpointTick(debugStep);
 					cpu.decTimers();
+					framesTicked++;
 				}else{
 					if(!cpu.breakpointReached){
 						cpu.tick(debugStep);

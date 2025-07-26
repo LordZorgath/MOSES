@@ -90,7 +90,7 @@ namespace Cores{
 			audioSamples = new int16_t[samplesPerFrame];
 			name = n;
 			bclk = f;
-			srand(69);
+			srand(0x69);
 		};
 		
 		public:
