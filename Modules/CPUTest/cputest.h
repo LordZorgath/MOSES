@@ -2,7 +2,7 @@
 //Tuesday July 15th, 2025
 
 #include "../../module.h"
-#include "mos6502-nmos.h"
+#include "../../CPUs/Interpreter/mos6502-nmos.h"
 
 namespace Cores::CPUTest{
 	

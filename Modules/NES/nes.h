@@ -3,7 +3,7 @@
 
 #include "../../module.h"
 #include "bus.h"
-#include "mos6502-2a03.h"
+#include "../../CPUs/Interpreter/mos6502-2a03.h"
 
 namespace Cores::Nes{
 	
