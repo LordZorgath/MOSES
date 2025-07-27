@@ -31,6 +31,7 @@
 #include "Modules/AppleII/appleii.h"
 #include "Modules/CPUTest/cputest.h"
 #include "Modules/XO-Chip/xochip.h"
+#include "Modules/SCHIP/schip.h"
 
 using namespace Cores;
 using json = nlohmann::json;
@@ -120,6 +121,10 @@ int main(int argc, char* argv[]){
 				if(arguments[1] == "chip8"){
 					coreSet = true;
 					sys = new Cores::Chip8::System(argc, arguments);
+				}
+				if(arguments[1] == "schip"){
+					coreSet = true;
+					sys = new Cores::Schip::System(argc, arguments);
 				}
 				if(arguments[1] == "nes"){
 					coreSet = true;
