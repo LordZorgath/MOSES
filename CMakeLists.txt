@@ -1,28 +1,37 @@
 cmake_minimum_required(VERSION 3.25)
+
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "Setting build type to 'Release' as none was specified.")
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
 project(MOSES)
+
+if(NOT DEFINED CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 20)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(BUILD_SHARED_LIBS OFF)
 set(SDL_SHARED OFF)
 set(SDL_STATIC ON)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+	set(CMAKE_CXX_FLAGS_DEBUG "-Og -std=c++23 -O0 -Wall -Wextra -fsanitize=shift -fsanitize=undefined -fsanitize=address -fsanitize=signed-integer-overflow -D_GLIBCXX_DEBUG")
+	set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+endif()
+
 add_subdirectory(vendored/SDL3-3.2.16 EXCLUDE_FROM_ALL)
 add_subdirectory(vendored/json EXCLUDE_FROM_ALL)
 add_executable(MOSES main.cpp)
 target_link_libraries(MOSES SDL3::SDL3)
 target_link_libraries(MOSES nlohmann_json::nlohmann_json)
 
-if(CMAKE_BUILD_TYPE MATCHES "Debug")
-	if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-		string(APPEND CMAKE_CXX_FLAGS "-g -std=c++23 -O0 -Wall -Wextra -fsanitize=shift -fsanitize=undefined -fsanitize=address -fsanitize=signed-integer-overflow -D_GLIBCXX_DEBUG")
-	elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-	elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-	endif()
-elseif (CMAKE_BUILD_TYPE MATCHES "Release")
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-		string(APPEND CMAKE_CXX_FLAGS "-O2")
-	elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-	elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-	endif()
-endif()
+
+
