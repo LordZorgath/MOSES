@@ -25,4 +25,4 @@ Supported cores:
 
 `xochip-fast` - same as `xochip`, but runs the core much faster, some games require this.
 
-`schip` - Four variants supported: `-variant=SCHIP1`, `-variant=SCHIP11`, `-variant=SCHIPC`, and `-variant=SCHIPM`. `SCHIPM` will be used by default.
+`schip` - use `--legacy` argument to emulate HP-48 superchip, otherwise Octo's implementation will be used.

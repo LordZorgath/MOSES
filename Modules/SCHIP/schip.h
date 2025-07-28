@@ -1,4 +1,4 @@
-//Chip-8 module for MOSES. Mostly for testing UI, graphics, sound and the like.
+//SCHIP module for MOSES
 //Thursday 26th June, 2025
 #include "../../module.h"
 
@@ -18,103 +18,47 @@ namespace Cores::Schip{
 			}
 		}
 		
-		void setup(){
-			mem[0] = 0xF0;
-			mem[1] = 0x90;
-			mem[2] = 0x90;
-			mem[3] = 0x90;
-			mem[4] = 0xF0;
-			//Sprite for 0
-			mem[5] = 0x20;
-			mem[6] = 0x60;
-			mem[7] = 0x20;
-			mem[8] = 0x20;
-			mem[9] = 0x70;
-			//Sprite for 1
-			mem[10] = 0xF0;
-			mem[11] = 0x10;
-			mem[12] = 0xF0;
-			mem[13] = 0x80;
-			mem[14] = 0xF0;
-			//Sprite for 2
-			mem[15] = 0xF0;
-			mem[16] = 0x10;
-			mem[17] = 0xF0;
-			mem[18] = 0x10;
-			mem[19] = 0xF0;
-			//Sprite for 3
-			mem[20] = 0x90;
-			mem[21] = 0x90;
-			mem[22] = 0xF0;
-			mem[23] = 0x10;
-			mem[24] = 0x10;
-			//Sprite for 4
-			mem[25] = 0xF0;
-			mem[26] = 0x80;
-			mem[27] = 0xF0;
-			mem[28] = 0x10;
-			mem[29] = 0xF0;
-			//Sprite for 5
-			mem[30] = 0xF0;
-			mem[31] = 0x80;
-			mem[32] = 0xF0;
-			mem[33] = 0x90;
-			mem[34] = 0xF0;
-			//Sprite for 6
-			mem[35] = 0xF0;
-			mem[36] = 0x10;
-			mem[37] = 0x20;
-			mem[38] = 0x40;
-			mem[39] = 0x40;
-			//Sprite for 7
-			mem[40] = 0xF0;
-			mem[41] = 0x90;
-			mem[42] = 0xF0;
-			mem[43] = 0x90;
-			mem[44] = 0xF0;
-			//Sprite for 8
-			mem[45] = 0xF0;
-			mem[46] = 0x90;
-			mem[47] = 0xF0;
-			mem[48] = 0x10;
-			mem[49] = 0xF0;
-			//Sprite for 9
-			mem[50] = 0xF0;
-			mem[51] = 0x90;
-			mem[52] = 0xF0;
-			mem[53] = 0x90;
-			mem[54] = 0x90;
-			//Sprite for A
-			mem[55] = 0xE0;
-			mem[56] = 0x90;
-			mem[57] = 0xE0;
-			mem[58] = 0x90;
-			mem[59] = 0xE0;
-			//Sprite for B
-			mem[60] = 0xF0;
-			mem[61] = 0x80;
-			mem[62] = 0x80;
-			mem[63] = 0x80;
-			mem[64] = 0xF0;
-			//Sprite for C
-			mem[65] = 0xE0;
-			mem[66] = 0x90;
-			mem[67] = 0x90;
-			mem[68] = 0x90;
-			mem[69] = 0xE0;
-			//Sprite for D
-			mem[70] = 0xF0;
-			mem[71] = 0x80;
-			mem[72] = 0xF0;
-			mem[73] = 0x80;
-			mem[74] = 0xF0;
-			//Sprite for E
-			mem[75] = 0xF0;
-			mem[76] = 0x80;
-			mem[77] = 0xF0;
-			mem[78] = 0x80;
-			mem[79] = 0x80;
-			//Sprite for F
+		uint8_t pixelFont[16*15] = {
+			//Five-line font
+			0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+			0x20, 0x60, 0x20, 0x20, 0x70, // 1
+			0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+			0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+			0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+			0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+			0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+			0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+			0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+			0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+			0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+			0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+			0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+			0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+			0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+			0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+			//Ten-line font
+			0xFF, 0xFF, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xFF, 0xFF, // 0
+			0x18, 0x78, 0x78, 0x18, 0x18, 0x18, 0x18, 0x18, 0xFF, 0xFF, // 1
+			0xFF, 0xFF, 0x03, 0x03, 0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, // 2
+			0xFF, 0xFF, 0x03, 0x03, 0xFF, 0xFF, 0x03, 0x03, 0xFF, 0xFF, // 3
+			0xC3, 0xC3, 0xC3, 0xC3, 0xFF, 0xFF, 0x03, 0x03, 0x03, 0x03, // 4
+			0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0x03, 0x03, 0xFF, 0xFF, // 5
+			0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC3, 0xC3, 0xFF, 0xFF, // 6
+			0xFF, 0xFF, 0x03, 0x03, 0x06, 0x0C, 0x18, 0x18, 0x18, 0x18, // 7
+			0xFF, 0xFF, 0xC3, 0xC3, 0xFF, 0xFF, 0xC3, 0xC3, 0xFF, 0xFF, // 8
+			0xFF, 0xFF, 0xC3, 0xC3, 0xFF, 0xFF, 0x03, 0x03, 0xFF, 0xFF, // 9
+			0x7E, 0xFF, 0xC3, 0xC3, 0xC3, 0xFF, 0xFF, 0xC3, 0xC3, 0xC3, // A
+			0xFC, 0xFC, 0xC3, 0xC3, 0xFC, 0xFC, 0xC3, 0xC3, 0xFC, 0xFC, // B
+			0x3C, 0xFF, 0xC3, 0xC0, 0xC0, 0xC0, 0xC0, 0xC3, 0xFF, 0x3C, // C
+			0xFC, 0xFE, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xFE, 0xFC, // D
+			0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, // E
+			0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0  // F
+		};
+		
+		void populateFont(){
+			for(int i = 0; i < (16*15); i++){
+				mem[i] = pixelFont[i];
+			}
 		}
 
 		uint8_t read(uint16_t addr){
@@ -164,13 +108,14 @@ namespace Cores::Schip{
 		bool hiresMode = false;
 		bool release = true;
 		uint8_t tempKey = 16;
-		uint8_t variant = 2; //0 = SCHIP 1.0, 1 = SCHIP 1.1, 2 = SCHIP-MODERN, 3 = SCHIPC
+		bool legacy = false;
+		/*uint8_t variant = 2; //0 = SCHIP 1.0, 1 = SCHIP 1.1, 2 = SCHIP-MODERN, 3 = SCHIPC
 		
 		#define SCHIP1 0
 		#define SCHIP11 1
 		#define SCHIPM 2
 		#define SCHIPC 3
-		
+		*/
 		bool getSound(){
 			return (st > 0);
 		}
@@ -214,6 +159,7 @@ namespace Cores::Schip{
 		inline void tick(uint32_t steps){
 			uint8_t refA;
 			uint8_t refB;
+			uint8_t refC;
 			uint8_t flagRef;
 			for(uint32_t a = 0; a < steps; a++){
 				curOpcode = bus.readOpcode(pc);
@@ -224,7 +170,7 @@ namespace Cores::Schip{
 						switch(curOpcode){
 							case 0x00E0: //CLS
 								for(int i = 0; i < 128*64; i++){
-									display[i%128][i/128] = 0;
+									display[i%128][i/128] = false;
 								}
 								break;
 							case 0x00EE: //RET
@@ -237,51 +183,64 @@ namespace Cores::Schip{
 								}
 								break;
 							case 0x00FB: //SCR
-								if(variant == SCHIP1){
-									std::cout << "GURU MEDITATION unknown opcode\n";
-									getDebugInfo();
-									break;
-								}
 								refA = (curOpcode & 0x000F);
 								for(int y = 0; y < getScreenY(); y++){
 									for(int x = getScreenX()-1; x >= 0; x--){
-										display[x][y] = display[((x-4) & (getScreenX()-1))][y];
+										if(x < 4){
+											display[x][y] = false;
+										}else{
+											display[x][y] = display[((x-4) & (getScreenX()-1))][y];
+										}
 									}
 								}
 								break;
 							case 0x00FC: //SCL
-								if(variant == SCHIP1){
-									std::cout << "GURU MEDITATION unknown opcode\n";
-									getDebugInfo();
-									break;
-								}
 								refA = (curOpcode & 0x000F);
 								for(int y = 0; y < getScreenY(); y++){
 									for(int x = 0; x < getScreenX(); x++){
-										display[x][y] = display[((x+4) & (getScreenX()-1))][y];
+										if(x >= (getScreenX()-4)){
+											display[x][y] = 0;
+										}else{
+											display[x][y] = display[((x+4) & (getScreenX()-1))][y];
+										}
 									}
 								}
 								break;
 							case 0x00FE: //LOW
 								hiresMode = false;
+								if(!legacy){
+									for(int i = 0; i < 128*64; i++){
+										display[i%128][i/128] = false;
+									}
+								}
 								break;
 							case 0x00FF: //HIGH
 								hiresMode = true;
+								if(!legacy){
+									for(int i = 0; i < 128*64; i++){
+										display[i%128][i/128] = false;
+									}
+								}
 								break;
 							default:
 								switch(((curOpcode & 0x00F0) >> 4)){
 									case 0x0C: //SCD
 										refA = (curOpcode & 0x000F);
-										if(refA == 0 && variant != SCHIPM){
+										if(refA == 0 && legacy){
 											std::cout << "GURU MEDITATION invalid 0 pixel scroll\n";
 											getDebugInfo();
 											break;
 										}
 										for(int y = getScreenY()-1; y >= 0; y--){
 											for(int x = 0; x < getScreenX(); x++){
-												display[x][y] = (display[x][(y-refA) & (getScreenY()-1)]);
+												if(y < refA){
+													display[x][y] = false;
+												}else{
+													display[x][y] = display[x][(y-refA) & (getScreenY()-1)];
+												}
 											}
 										}
+										break;
 										break;
 									default:
 										std::cout << "GURU MEDITATION unknown opcode\n";
@@ -295,7 +254,7 @@ namespace Cores::Schip{
 						pc = (curOpcode & 0x0FFF);
 						break;
 					case 0x02: //CALL
-						if(sp > 11){
+						if(sp > 15){
 							std::cout << "GURU MEDITATION too many nested subroutines\n";
 						}else{
 							stack[sp] = pc;
@@ -363,7 +322,7 @@ namespace Cores::Schip{
 								v[15] = flagRef;
 								break;
 							case 0xE: //SHL
-								flagRef = (v[((curOpcode & 0x0F00) >> 8)] >> 7);
+								flagRef = ((v[((curOpcode & 0x0F00) >> 8)] & 0b1000000) >> 7);
 								v[((curOpcode & 0x0F00) >> 8)] <<= 1;
 								v[15] = flagRef;
 								break;
@@ -384,12 +343,8 @@ namespace Cores::Schip{
 						i = (curOpcode & 0x0FFF);
 						break;
 					case 0x0B: //JP
-						if(variant == SCHIPC){
-							pc = ((curOpcode & 0x0FFF) + v[0]);
-						}else{
-							refA = ((curOpcode & 0x0F00) >> 8);
-							pc = ((curOpcode & 0x0FFF) + v[refA]);
-						}
+						refA = ((curOpcode & 0x0F00) >> 8);
+						pc = ((curOpcode & 0x0FFF) + v[refA]);
 						break;
 					case 0x0C: //RND
 						v[((curOpcode & 0x0F00) >> 8)] = (rand() & (curOpcode & 0x00FF));
@@ -397,23 +352,26 @@ namespace Cores::Schip{
 					case 0x0D: //DRW
 						refA = v[((curOpcode & 0x0F00) >> 8)] & (getScreenX()-1);
 						refB = v[((curOpcode & 0x00F0) >> 4)] & (getScreenY()-1);
+						refC = ((curOpcode & 0x000F) == 0 ? 16 : (curOpcode & 0x000F));
 						v[15] = false;
-						for(int y = 0; y < (curOpcode & 0x000F); y++){
+						for(int y = 0; y < refC; y++){
 							if((y + refB) > (getScreenY()-1)){
 								break;
 							}
-							flagRef = bus.read(i+y);
-							for(int x = 0; x < 8; x++){
-								if((x + refA) > (getScreenX()-1)){
-									break;
+							for(int w = 0; w <= ((legacy && !hiresMode) ? 0 : (refC/16)); w++){
+								flagRef = bus.read(i+(y*(1+(refC/16)))+w);
+								for(int x = 0; x < 8; x++){
+									if((refA+x+(w*8)) > (getScreenX()-1)){
+										break;
+									}
+									if(flagRef & (0b10000000 >> x) && display[(refA+x+(w*8))][(refB+y)]){
+										v[15] = true;
+									}
+									display[(refA+x+(w*8))][(refB+y)] ^= (flagRef & (0b10000000 >> x)) >> (7-x);
 								}
-								if(flagRef & (0b10000000 >> x) && display[(refA+x)][(refB+y)]){
-									v[15] = true;
-								}
-								display[(refA+x)][(refB+y)] ^= (flagRef & (0b10000000 >> x)) >> (7-x);
 							}
 						}
-						if(displayWait && !hiresMode && (variant != SCHIPM)){
+						if(displayWait && !hiresMode && legacy){
 							return;
 						}
 						break;
@@ -480,16 +438,10 @@ namespace Cores::Schip{
 								for(int a = 0; a <= ((curOpcode & 0x0F00) >> 8); a++){
 									bus.write(v[a], i+a);
 								}
-								if(variant == SCHIP1){
-									i += ((curOpcode & 0x0F00) >> 8);
-								}
 								break;
 							case 0x65: //LD
 								for(int a = 0; a <= ((curOpcode & 0x0F00) >> 8); a++){
 									v[a] = bus.read(i+a);
-								}
-								if(variant == SCHIP1){
-									i += ((curOpcode & 0x0F00) >> 8);
 								}
 								break;
 							case 0x75: //LD
@@ -667,17 +619,8 @@ namespace Cores::Schip{
 				if(args[i] == "--nodisplaywait"){
 					cpu.displayWait = false;
 				}
-				if(args[i] == "-variant=SCHIP1"){
-					cpu.variant = SCHIP1;
-				}
-				if(args[i] == "-variant=SCHIP11"){
-					cpu.variant = SCHIP11;
-				}
-				if(args[i] == "-variant=SCHIPC"){
-					cpu.variant = SCHIPC;
-				}
-				if(args[i] == "-variant=SCHIPM"){
-					cpu.variant = SCHIPM;
+				if(args[i] == "--legacy"){
+					cpu.legacy = true;
 				}
 			}
 			if(!fileArg){
@@ -685,7 +628,7 @@ namespace Cores::Schip{
 			}
 			if(fileFound){
 				init = true;
-				bus.setup();
+				bus.populateFont();
 			}
 		}
 	};
