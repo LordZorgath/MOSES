@@ -279,6 +279,7 @@ namespace Cores::Schip{
 							}
 						}else{
 							std::cout << "GURU MEDITATION unknown opcode\n";
+							getDebugInfo();
 						}
 						break;
 					case 0x06: //LD
@@ -581,14 +582,15 @@ namespace Cores::Schip{
 		}
 		
 		void runCycle() override{
+			cpu.decTimers();
 			getKey();
 			cpu.release = keyRelease;
 			cpu.tick(bclk);
 			drawFrame();
-			cpu.decTimers();
 		}
 		
 		void debugCycle() override{
+			cpu.decTimers();
 			getKey();
 			cpu.release = keyRelease;
 			if(doWriteLog){
@@ -597,7 +599,6 @@ namespace Cores::Schip{
 				cpu.tick(debugStep);
 			}
 			drawFrame();
-			cpu.decTimers();
 			cpu.getDebugInfo();
 		}
 		

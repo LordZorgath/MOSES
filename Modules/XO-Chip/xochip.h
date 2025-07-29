@@ -704,14 +704,15 @@ namespace Cores::Xochip{
 		}
 
 		void runCycle() override{
+			cpu.decTimers();
 			getKey();
 			cpu.release = keyRelease;
 			cpu.tick(bclk);
 			drawFrame();
-			cpu.decTimers();
 		}
 		
 		void debugCycle() override{
+			cpu.decTimers();
 			getKey();
 			cpu.release = keyRelease;
 			cpu.pcBreakpoint = pcBreakpoint;
@@ -721,12 +722,10 @@ namespace Cores::Xochip{
 			}else{
 				if(breakpointActive){
 					cpu.breakpointTick(debugStep);
-					cpu.decTimers();
 					framesTicked++;
 				}else{
 					if(!cpu.breakpointReached){
 						cpu.tick(debugStep);
-						cpu.decTimers();
 						cpu.getDebugInfo();
 					}
 				}
