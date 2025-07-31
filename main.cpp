@@ -15,6 +15,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 //File created Thursday 19th of June, 2025
+#include <memory>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -87,7 +88,7 @@ int main(int argc, char* argv[]){
 	std::vector<bool> keyState;
 	bool debugPause = false;
 	bool dbgPauseEnable = true;
-	Module *sys;
+  std::unique_ptr<Module> sys;
 	WindowArgs *winArgs;
 	double targetFPS = 60.0;
 	bool run = true;
@@ -120,23 +121,23 @@ int main(int argc, char* argv[]){
 			if(argc >= 3){
 				if(arguments[1] == "chip8"){
 					coreSet = true;
-					sys = new Cores::Chip8::System(argc, arguments);
+          sys = std::make_unique<Cores::Chip8::System>(argc, arguments);
 				}
 				if(arguments[1] == "schip"){
 					coreSet = true;
-					sys = new Cores::Schip::System(argc, arguments);
+          sys = std::make_unique<Cores::Schip::System>(argc, arguments);
 				}
 				if(arguments[1] == "nes"){
 					coreSet = true;
-					sys = new Cores::Nes::System(argc, arguments);
+          sys = std::make_unique<Cores::Nes::System>(argc, arguments);
 				}
 				if(arguments[1] == "xochip"){
 					coreSet = true;
-					sys = new Cores::Xochip::System(argc, arguments, 1000);
+          sys = std::make_unique<Cores::Xochip::System>(argc, arguments, 1000);
 				}
 				if(arguments[1] == "xochip-fast"){
 					coreSet = true;
-					sys = new Cores::Xochip::System(argc, arguments, 200000);
+          sys = std::make_unique<Cores::Xochip::System>(argc, arguments, 200000);
 				}
 				if(!(sys -> checkInit())){
 					SDL_Quit();
