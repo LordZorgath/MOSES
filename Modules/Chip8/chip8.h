@@ -11,7 +11,7 @@ namespace Cores::Chip8{
 	
 		public:
 		void loadROM(std::vector<uint8_t> rom){
-			for(uint i = 0; i < rom.size(); i++){
+			for(int i = 0; i < rom.size(); i++){
 				mem[0x200+i] = rom[i];
 			}
 		}
