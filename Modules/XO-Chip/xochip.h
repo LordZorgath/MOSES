@@ -189,13 +189,8 @@ namespace Cores::Xochip{
 		}
 		
 		inline void tick(uint32_t steps){
-			uint8_t refA;
-			uint8_t refB;
-			uint8_t refC;
-			uint8_t refD;
 			uint8_t flagRef;
 			uint8_t pixelRef;
-			uint8_t planeIterator;
 			for(uint32_t a = 0; a < steps; a++){
 				curOpcode = bus.read16(pc);
 				curOpcodeMSB = (curOpcode & 0xF000) >> 12;
@@ -218,7 +213,6 @@ namespace Cores::Xochip{
 								}
 								break;
 							case 0x00FB: //SCR
-								refA = (curOpcode & 0x000F);
 								for(int y = 0; y < getScreenY(); y++){
 									for(int x = getScreenX()-1; x >= 0; x--){
 										if(x < 4){
@@ -232,7 +226,6 @@ namespace Cores::Xochip{
 								}
 								break;
 							case 0x00FC: //SCL
-								refA = (curOpcode & 0x000F);
 								for(int y = 0; y < getScreenY(); y++){
 									for(int x = 0; x < getScreenX(); x++){
 										if(x >= (getScreenX()-4)){
@@ -260,29 +253,33 @@ namespace Cores::Xochip{
 							default:
 								switch(((curOpcode & 0x00F0) >> 4)){
 									case 0x0C: //SCD
-										refA = (curOpcode & 0x000F);
-										for(int y = getScreenY()-1; y >= 0; y--){
-											for(int x = 0; x < getScreenX(); x++){
-												if(y < refA){
-													display[x][y] &= ~planeSelect;
-												}else{
-													pixelRef = (display[x][y] & ~planeSelect);
-													display[x][y] = (display[x][(y-refA) & (getScreenY()-1)] & (planeSelect & 0x0F));
-													display[x][y] |= (pixelRef & 0x0F);
+										{
+											uint8_t offset = (curOpcode & 0x000F);
+											for(int y = getScreenY()-1; y >= 0; y--){
+												for(int x = 0; x < getScreenX(); x++){
+													if(y < offset){
+														display[x][y] &= ~planeSelect;
+													}else{
+														pixelRef = (display[x][y] & ~planeSelect);
+														display[x][y] = (display[x][(y-offset) & (getScreenY()-1)] & (planeSelect & 0x0F));
+														display[x][y] |= (pixelRef & 0x0F);
+													}
 												}
 											}
 										}
 										break;
 									case 0x0D: //SCU
-										refA = (curOpcode & 0x000F);
-										for(int y = 0; y < getScreenY(); y++){
-											for(int x = 0; x < getScreenX(); x++){
-												if(y >= (getScreenY()-refA)){
-													display[x][y] &= ~planeSelect;
-												}else{
-													pixelRef = (display[x][y] & ~planeSelect);
-													display[x][y] = (display[x][(y+refA) & (getScreenY()-1)] & (planeSelect & 0x0F));
-													display[x][y] |= (pixelRef & 0x0F);
+										{
+											uint8_t offset = (curOpcode & 0x000F);
+											for(int y = 0; y < getScreenY(); y++){
+												for(int x = 0; x < getScreenX(); x++){
+													if(y >= (getScreenY()-offset)){
+														display[x][y] &= ~planeSelect;
+													}else{
+														pixelRef = (display[x][y] & ~planeSelect);
+														display[x][y] = (display[x][(y+offset) & (getScreenY()-1)] & (planeSelect & 0x0F));
+														display[x][y] |= (pixelRef & 0x0F);
+													}
 												}
 											}
 										}
@@ -318,41 +315,43 @@ namespace Cores::Xochip{
 						}
 						break;
 					case 0x05:
-						refA = ((curOpcode & 0x0F00) >> 8);
-						refB = ((curOpcode & 0x00F0) >> 4);
-						refC = fmin(refA, refB);
-						switch(curOpcode & 0x000F){
-							case 0: //SE 
-								if(v[refA] == v[refB]){
-									(bus.read16(pc) == 0xF000) ? pc+=4 : pc+=2;
-								}
-								break;
-							case 2: //LD
-								if(refC == refA){
-									for(int a = refA; a <= refB; a++){
-										bus.write(v[a], i+(a-refA));
+						{
+							uint8_t regA = ((curOpcode & 0x0F00) >> 8);
+							uint8_t regB = ((curOpcode & 0x00F0) >> 4);
+							uint8_t small = fmin(regA, regB);
+							switch(curOpcode & 0x000F){
+								case 0: //SE 
+									if(v[regA] == v[regB]){
+										(bus.read16(pc) == 0xF000) ? pc+=4 : pc+=2;
 									}
-								}else{
-									for(int a = refA; a >= refB; a--){
-										bus.write(v[a], i+(refA-a));
+									break;
+								case 2: //LD
+									if(small == regA){
+										for(int a = regA; a <= regB; a++){
+											bus.write(v[a], i+(a-regA));
+										}
+									}else{
+										for(int a = regA; a >= regB; a--){
+											bus.write(v[a], i+(regA-a));
+										}
 									}
-								}
-								break;
-							case 3: //LD
-								if(refC == refA){
-									for(int a = refA; a <= refB; a++){
-										v[a] = bus.read(i+(a-refA));
+									break;
+								case 3: //LD
+									if(small == regA){
+										for(int a = regA; a <= regB; a++){
+											v[a] = bus.read(i+(a-regA));
+										}
+									}else{
+										for(int a = regA; a >= regB; a--){
+											v[a] = bus.read(i+(regA-a));
+										}
 									}
-								}else{
-									for(int a = refA; a >= refB; a--){
-										v[a] = bus.read(i+(refA-a));
-									}
-								}
-								break;
-							default:
-								std::cout << "GURU MEDITATION unknown opcode\n";
-								getDebugInfo();
-								break;
+									break;
+								default:
+									std::cout << "GURU MEDITATION unknown opcode\n";
+									getDebugInfo();
+									break;
+							}
 						}
 						break;
 					case 0x06: //LD
@@ -423,28 +422,29 @@ namespace Cores::Xochip{
 						v[((curOpcode & 0x0F00) >> 8)] = (rand() & (curOpcode & 0x00FF));
 						break;
 					case 0x0D: //DRW
-						refA = v[((curOpcode & 0x0F00) >> 8)];
-						refB = v[((curOpcode & 0x00F0) >> 4)];
-						refC = ((curOpcode & 0x00F) == 0) ? 16 : (curOpcode & 0x00F);
-						refD = floor(refC/16);
-						v[15] = false;
-						planeIterator = 0;
-						for(int plane = 0; plane < 4; plane++){
-							if((planeSelect & (1 << plane))){
-								for(int y = 0; y < refC; y++){
-									for(int z = 0; z <= refD; z++){
-										flagRef = bus.read(i+(y*(1+refD))+z+(refD ? planeIterator*32 : planeIterator*refC));
-										for(int x = 0; x < 8; x++){
-											if(((flagRef & (0b10000000 >> x))) && (display[(refA+x+(z*8)) & (getScreenX()-1)][(refB+y) & (getScreenY()-1)] & (1 << plane))){
-												v[15] = true;
+						{
+							uint8_t posX = v[((curOpcode & 0x0F00) >> 8)];
+							uint8_t posY = v[((curOpcode & 0x00F0) >> 4)];
+							uint8_t spriteHeight = ((curOpcode & 0x00F) == 0) ? 16 : (curOpcode & 0x00F);
+							uint8_t planeIterator = 0;
+							v[15] = false;
+							for(int plane = 0; plane < 4; plane++){
+								if((planeSelect & (1 << plane))){
+									for(int y = 0; y < spriteHeight; y++){
+										for(int z = 0; z <= (spriteHeight == 16); z++){
+											flagRef = bus.read(i+(y*(1+(spriteHeight == 16)))+z+((spriteHeight == 16) ? planeIterator*32 : planeIterator*spriteHeight));
+											for(int x = 0; x < 8; x++){
+												if(((flagRef & (0b10000000 >> x))) && (display[(posX+x+(z*8)) & (getScreenX()-1)][(posY+y) & (getScreenY()-1)] & (1 << plane))){
+													v[15] = true;
+												}
+												pixelRef = (display[(posX+x+(z*8)) & (getScreenX()-1)][(posY+y) & (getScreenY()-1)] & ~planeSelect);
+												display[(posX+x+(z*8)) & (getScreenX()-1)][(posY+y) & (getScreenY()-1)] ^= (((flagRef & (0b10000000 >> x)) >> (7-x)) << plane);
+												display[(posX+x+(z*8)) & (getScreenX()-1)][(posY+y) & (getScreenY()-1)] |= (pixelRef & 0x0F);
 											}
-											pixelRef = (display[(refA+x+(z*8)) & (getScreenX()-1)][(refB+y) & (getScreenY()-1)] & ~planeSelect);
-											display[(refA+x+(z*8)) & (getScreenX()-1)][(refB+y) & (getScreenY()-1)] ^= (((flagRef & (0b10000000 >> x)) >> (7-x)) << plane);
-											display[(refA+x+(z*8)) & (getScreenX()-1)][(refB+y) & (getScreenY()-1)] |= (pixelRef & 0x0F);
 										}
 									}
+									planeIterator++;
 								}
-								planeIterator++;
 							}
 						}
 						break;
@@ -519,10 +519,12 @@ namespace Cores::Xochip{
 								i = (16*5) + (v[((curOpcode & 0x0F00) >> 8)] & 0x0F) * 10;
 								break;
 							case 0x33: //LD
-								refA = v[((curOpcode & 0x0F00) >> 8)];
-								bus.write(refA / 100, i);
-								bus.write(refA / 10 % 10, i+1);
-								bus.write(refA % 10, i+2);
+								{
+									uint8_t num = v[((curOpcode & 0x0F00) >> 8)];
+									bus.write(num / 100, i);
+									bus.write(num / 10 % 10, i+1);
+									bus.write(num % 10, i+2);
+								}
 								break;
 							case 0x3A: //PITCH
 								pitch = 4000.0f*pow(2.0f, ((v[((curOpcode & 0x0F00) >> 8)]-64.0f)/48.0f));

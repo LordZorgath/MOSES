@@ -195,8 +195,6 @@ namespace Cores::Chip8{
 		}
 		
 		inline void tick(uint32_t steps){
-			uint8_t refA;
-			uint8_t refB;
 			uint8_t flagRef;
 			for(uint32_t a = 0; a < steps; a++){
 				curOpcode = bus.readOpcode(pc);
@@ -327,26 +325,29 @@ namespace Cores::Chip8{
 						v[((curOpcode & 0x0F00) >> 8)] = (rand() & (curOpcode & 0x00FF));
 						break;
 					case 0x0D: //DRW
-						refA = v[((curOpcode & 0x0F00) >> 8)] & 63;
-						refB = v[((curOpcode & 0x00F0) >> 4)] & 31;
-						v[15] = false;
-						for(int y = 0; y < (curOpcode & 0x000F); y++){
-							if((y + refB) > 31){
-								break;
-							}
-							flagRef = bus.read(i+y);
-							for(int x = 0; x < 8; x++){
-								if((x + refA) > 63){
+						{
+							uint8_t posX = (v[((curOpcode & 0x0F00) >> 8)] & 63);
+							uint8_t posY = (v[((curOpcode & 0x00F0) >> 4)] & 31);
+							v[15] = false;
+							for(int h = 0; h < (curOpcode & 0x000F); h++){
+								if((h + posY) > 31){
 									break;
 								}
-								if(flagRef & (0b10000000 >> x) && display[(refA+x)][(refB+y)]){
-									v[15] = true;
+								flagRef = bus.read(i+h);
+								for(int w = 0; w < 8; w++){
+									uint8_t pixel = (flagRef & (0b10000000 >> w));
+									if((w + posX) > 63){
+										break;
+									}
+									if(pixel && display[(posX+w)][(posY+h)]){
+										v[15] = true;
+									}
+									display[(posX+w)][(posY+h)] ^= (pixel >> (7-w));
 								}
-								display[(refA+x)][(refB+y)] ^= (flagRef & (0b10000000 >> x)) >> (7-x);
 							}
-						}
-						if(displayWait){
-							return;
+							if(displayWait){
+								return;
+							}
 						}
 						break;
 					case 0x0E:
@@ -403,10 +404,12 @@ namespace Cores::Chip8{
 								i = (v[((curOpcode & 0x0F00) >> 8)] & 0x0F) * 5;
 								break;
 							case 0x33: //LD
-								refA = v[((curOpcode & 0x0F00) >> 8)];
-								bus.write(refA / 100, i);
-								bus.write(refA / 10 % 10, i+1);
-								bus.write(refA % 10, i+2);
+								{
+									uint8_t num = v[((curOpcode & 0x0F00) >> 8)];
+									bus.write(num / 100, i);
+									bus.write(num / 10 % 10, i+1);
+									bus.write(num % 10, i+2);
+								}
 								break;
 							case 0x55: //LD
 								for(int a = 0; a <= ((curOpcode & 0x0F00) >> 8); a++){

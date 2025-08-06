@@ -150,9 +150,6 @@ namespace Cores::Schip{
 		}
 		
 		inline void tick(uint32_t steps){
-			uint8_t refA;
-			uint8_t refB;
-			uint8_t refC;
 			uint8_t flagRef;
 			for(uint32_t a = 0; a < steps; a++){
 				curOpcode = bus.readOpcode(pc);
@@ -176,7 +173,6 @@ namespace Cores::Schip{
 								}
 								break;
 							case 0x00FB: //SCR
-								refA = (curOpcode & 0x000F);
 								for(int y = 0; y < getScreenY(); y++){
 									for(int x = getScreenX()-1; x >= 0; x--){
 										if(x < 4){
@@ -188,7 +184,6 @@ namespace Cores::Schip{
 								}
 								break;
 							case 0x00FC: //SCL
-								refA = (curOpcode & 0x000F);
 								for(int y = 0; y < getScreenY(); y++){
 									for(int x = 0; x < getScreenX(); x++){
 										if(x >= (getScreenX()-4)){
@@ -218,18 +213,20 @@ namespace Cores::Schip{
 							default:
 								switch(((curOpcode & 0x00F0) >> 4)){
 									case 0x0C: //SCD
-										refA = (curOpcode & 0x000F);
-										if(refA == 0 && legacy){
-											std::cout << "GURU MEDITATION invalid 0 pixel scroll\n";
-											getDebugInfo();
-											break;
-										}
-										for(int y = getScreenY()-1; y >= 0; y--){
-											for(int x = 0; x < getScreenX(); x++){
-												if(y < refA){
-													display[x][y] = false;
-												}else{
-													display[x][y] = display[x][(y-refA) & (getScreenY()-1)];
+										{
+											uint8_t offset = (curOpcode & 0x000F);
+											if(offset == 0 && legacy){
+												std::cout << "GURU MEDITATION invalid 0 pixel scroll\n";
+												getDebugInfo();
+												break;
+											}
+											for(int y = getScreenY()-1; y >= 0; y--){
+												for(int x = 0; x < getScreenX(); x++){
+													if(y < offset){
+														display[x][y] = false;
+													}else{
+														display[x][y] = display[x][(y-offset) & (getScreenY()-1)];
+													}
 												}
 											}
 										}
@@ -336,36 +333,37 @@ namespace Cores::Schip{
 						i = (curOpcode & 0x0FFF);
 						break;
 					case 0x0B: //JP
-						refA = ((curOpcode & 0x0F00) >> 8);
-						pc = ((curOpcode & 0x0FFF) + v[refA]);
+						pc = ((curOpcode & 0x0FFF) + v[((curOpcode & 0x0F00) >> 8)]);
 						break;
 					case 0x0C: //RND
 						v[((curOpcode & 0x0F00) >> 8)] = (rand() & (curOpcode & 0x00FF));
 						break;
 					case 0x0D: //DRW
-						refA = v[((curOpcode & 0x0F00) >> 8)] & (getScreenX()-1);
-						refB = v[((curOpcode & 0x00F0) >> 4)] & (getScreenY()-1);
-						refC = ((curOpcode & 0x000F) == 0 ? 16 : (curOpcode & 0x000F));
-						v[15] = false;
-						for(int y = 0; y < refC; y++){
-							if((y + refB) > (getScreenY()-1)){
-								break;
-							}
-							for(int w = 0; w <= ((legacy && !hiresMode) ? 0 : (refC/16)); w++){
-								flagRef = bus.read(i+(y*(1+(refC/16)))+w);
-								for(int x = 0; x < 8; x++){
-									if((refA+x+(w*8)) > (getScreenX()-1)){
-										break;
+						{
+							uint8_t posX = v[((curOpcode & 0x0F00) >> 8)] & (getScreenX()-1);
+							uint8_t posY = v[((curOpcode & 0x00F0) >> 4)] & (getScreenY()-1);
+							uint8_t spriteHeight = ((curOpcode & 0x000F) == 0 ? 16 : (curOpcode & 0x000F));
+							v[15] = false;
+							for(int y = 0; y < spriteHeight; y++){
+								if((y + posY) > (getScreenY()-1)){
+									break;
+								}
+								for(int w = 0; w <= ((legacy && !hiresMode) ? 0 : (spriteHeight/16)); w++){
+									flagRef = bus.read(i+(y*(1+(spriteHeight/16)))+w);
+									for(int x = 0; x < 8; x++){
+										if((posX+x+(w*8)) > (getScreenX()-1)){
+											break;
+										}
+										if(flagRef & (0b10000000 >> x) && display[(posX+x+(w*8))][(posY+y)]){
+											v[15] = true;
+										}
+										display[(posX+x+(w*8))][(posY+y)] ^= (flagRef & (0b10000000 >> x)) >> (7-x);
 									}
-									if(flagRef & (0b10000000 >> x) && display[(refA+x+(w*8))][(refB+y)]){
-										v[15] = true;
-									}
-									display[(refA+x+(w*8))][(refB+y)] ^= (flagRef & (0b10000000 >> x)) >> (7-x);
 								}
 							}
-						}
-						if(displayWait && !hiresMode && legacy){
-							return;
+							if(displayWait && !hiresMode && legacy){
+								return;
+							}
 						}
 						break;
 					case 0x0E:
@@ -425,10 +423,12 @@ namespace Cores::Schip{
 								i = (16*5) + (v[((curOpcode & 0x0F00) >> 8)] & 0x0F) * 10;
 								break;
 							case 0x33: //LD
-								refA = v[((curOpcode & 0x0F00) >> 8)];
-								bus.write(refA / 100, i);
-								bus.write(refA / 10 % 10, i+1);
-								bus.write(refA % 10, i+2);
+								{
+									uint8_t num = v[((curOpcode & 0x0F00) >> 8)];
+									bus.write(num / 100, i);
+									bus.write(num / 10 % 10, i+1);
+									bus.write(num % 10, i+2);
+								}
 								break;
 							case 0x55: //LD
 								for(int a = 0; a <= ((curOpcode & 0x0F00) >> 8); a++){
