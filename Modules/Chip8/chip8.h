@@ -530,6 +530,7 @@ namespace Cores::Chip8{
 				audioPhase += (sampleFreq/targetFPS);
 			}else{
 				if(lastFrame){
+					lastFrame = false;
 					bool silent = false;
 					for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
 						double time = i/(double)sampleFreq;
