@@ -1,5 +1,5 @@
 //SCHIP module for MOSES
-//Thursday 26th June, 2025
+//July 26th, 2025
 #include "../../module.h"
 
 namespace Cores::Schip{
@@ -108,13 +108,7 @@ namespace Cores::Schip{
 		bool release = true;
 		uint8_t tempKey = 16;
 		bool legacy = false;
-		/*uint8_t variant = 2; //0 = SCHIP 1.0, 1 = SCHIP 1.1, 2 = SCHIP-MODERN, 3 = SCHIPC
 		
-		#define SCHIP1 0
-		#define SCHIP11 1
-		#define SCHIPM 2
-		#define SCHIPC 3
-		*/
 		bool getSound(){
 			return (st > 0);
 		}
@@ -239,7 +233,6 @@ namespace Cores::Schip{
 												}
 											}
 										}
-										break;
 										break;
 									default:
 										std::cout << "GURU MEDITATION unknown opcode\n";
@@ -427,6 +420,9 @@ namespace Cores::Schip{
 								break;
 							case 0x29: //LD
 								i = (v[((curOpcode & 0x0F00) >> 8)] & 0x0F) * 5;
+								break;
+							case 0x30:
+								i = (16*5) + (v[((curOpcode & 0x0F00) >> 8)] & 0x0F) * 10;
 								break;
 							case 0x33: //LD
 								refA = v[((curOpcode & 0x0F00) >> 8)];

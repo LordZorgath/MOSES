@@ -43,6 +43,7 @@ class Mos6502_Nmos{
 	 * Indirect Indexed
 	 */
 
+
 	void setFlag(char flag, bool set){ //Shorthand for setting flags
 		switch(flag){
 			case 'n':
@@ -176,7 +177,7 @@ class Mos6502_Nmos{
 								break;
 							}
 					break;
-					case 0x02: //JAM - Undocumented
+					case 0x02: //JAM - Invalid
 					case 0x03: //SLO - Undocumented
 					case 0x04: //NOP - Undocumented
 					case 0x05: //ORA - OR with accumulator - Zeropage
@@ -319,7 +320,7 @@ class Mos6502_Nmos{
 								break;
 						}
 						break;
-					case 0x12: //JAM - Undocumented
+					case 0x12: //JAM - Invalid
 					case 0x13: //SLO - Undocumented
 					case 0x14: //NOP - Undocumented
 					case 0x15: //ORA - Or memory with accumulator - Zeropage, X
@@ -449,7 +450,7 @@ class Mos6502_Nmos{
 								break;
 						}
 						break;
-					case 0x22: //JAM - Undocumented
+					case 0x22: //JAM - Invalid
 					case 0x23: //RLA - Undocumented
 					case 0x24: //BIT - Test Bits - Zeropage
 						switch(extraTicks){
@@ -602,7 +603,7 @@ class Mos6502_Nmos{
 								break;
 						}
 						break;
-					case 0x32: //JAM - Undocumented
+					case 0x32: //JAM - Invalid
 					case 0x33: //RLA - Undocumented
 					case 0x34: //NOP - Undocumented
 					case 0x35: //AND - And Memory with Accumulator - Zeropage, X

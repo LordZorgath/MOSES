@@ -1,5 +1,5 @@
 //XO-Chip module for MOSES. Ostensibly to test multi-core functionality. Unofficially because I wanted to.
-//Thursday 26th June, 2025
+//July 17th, 2025
 #include "../../module.h"
 
 namespace Cores::Xochip{

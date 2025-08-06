@@ -6,6 +6,10 @@
 
 namespace Cores::CPUTest{
 	
+	struct{
+		uint8_t mem[65536];
+	} bus;
+	
 	class System:public Module{
 		
 		public:
