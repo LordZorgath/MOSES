@@ -196,6 +196,11 @@ int main(int argc, char* argv[]){
 	}catch(json::out_of_range){
 		std::cout << "GURU MEDITATION invalid argument\n";
 	}
+	uint32_t bufferSize = (winArgs -> getSampleFrequency()/targetFPS)*(winArgs -> getAudioChannels());
+	int16_t *bufferSamples = new int16_t[bufferSize];
+	for(int i = 0; i < bufferSize; i++){
+		bufferSamples[i] = 0;
+	}
 	while(run){
 		//ulong time = SDL_GetTicksNS();
 		SDL_Event event;
@@ -254,6 +259,7 @@ int main(int argc, char* argv[]){
 			}
 		}else{
 			sys -> runCycle();
+			SDL_PutAudioStreamData(audioOut, bufferSamples, (SDL_GetAudioStreamAvailable(audioOut) < bufferSize) ? 2*bufferSize : 0);
 			SDL_PutAudioStreamData(audioOut, sys -> playAudio(), 2*(winArgs -> getSampleFrequency()/targetFPS)*(winArgs -> getAudioChannels()));
 		}
 		/*ulong currentTime = SDL_GetTicksNS();

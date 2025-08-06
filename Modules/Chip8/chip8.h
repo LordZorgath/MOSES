@@ -482,6 +482,7 @@ namespace Cores::Chip8{
 	class System:public Module{
 		private:
 		float freq = 440 * 2 * M_PI;
+		bool lastFrame = false;
 		
 		void drawFrame(){
 			for(int y = 0; y < 32; y++){
@@ -521,14 +522,28 @@ namespace Cores::Chip8{
 			double targetFPS = winArgs -> getFPS();
 			audioPhase %= sampleFreq;
 			if(cpu.getSound()){
+				lastFrame = true;
 				for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
 					double time = i/(double)sampleFreq;
 					audioSamples[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
 				}
 				audioPhase += (sampleFreq/targetFPS);
 			}else{
-				for(int i = 0; i < (sampleFreq/targetFPS); i++){
-					audioSamples[i] = 0;
+				if(lastFrame){
+					bool silent = false;
+					for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
+						double time = i/(double)sampleFreq;
+						if(std::sin(freq*time)*(volume * 32767) <= 10.0f && std::sin(freq*time)*(volume * 32767) >= -10.0f || silent){
+							silent = true;
+							audioSamples[(i-audioPhase)] = 0;
+						}else if(!silent){
+							audioSamples[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
+						}
+					}
+				}else{
+					for(int i = 0; i < (sampleFreq/targetFPS); i++){
+						audioSamples[i] = 0;
+					}
 				}
 				audioPhase = 0;
 			}
@@ -556,7 +571,7 @@ namespace Cores::Chip8{
 			cpu.getDebugInfo();
 		}
 		
-		System(int argc, std::string* args):Module("Chip-8", 16, 64, 32, 1, 1800, 60.0){
+		System(int argc, std::string* args):Module("Chip-8", 16, 64, 32, 1, 48000, 60.0){
 			frameBuffer.resize(64*32);
 			bool fileArg = false;
 			for(int i = 0; i < argc; i++){

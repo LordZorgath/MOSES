@@ -509,6 +509,7 @@ namespace Cores::Schip{
 	class System:public Module{
 		private:
 		float freq = 440 * 2 * M_PI;
+		bool lastFrame = false;
 		
 		void drawFrame(){
 			if(cpu.hiresMode){
@@ -562,14 +563,28 @@ namespace Cores::Schip{
 			double targetFPS = winArgs -> getFPS();
 			audioPhase %= sampleFreq;
 			if(cpu.getSound()){
+				lastFrame = true;
 				for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
 					double time = i/(double)sampleFreq;
 					audioSamples[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
 				}
 				audioPhase += (sampleFreq/targetFPS);
 			}else{
-				for(int i = 0; i < (sampleFreq/targetFPS); i++){
-					audioSamples[i] = 0;
+				if(lastFrame){
+					bool silent = false;
+					for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
+						double time = i/(double)sampleFreq;
+						if(std::sin(freq*time)*(volume * 32767) <= 10.0f && std::sin(freq*time)*(volume * 32767) >= -10.0f || silent){
+							silent = true;
+							audioSamples[(i-audioPhase)] = 0;
+						}else if(!silent){
+							audioSamples[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
+						}
+					}
+				}else{
+					for(int i = 0; i < (sampleFreq/targetFPS); i++){
+						audioSamples[i] = 0;
+					}
 				}
 				audioPhase = 0;
 			}
