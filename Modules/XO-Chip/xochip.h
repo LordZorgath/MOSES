@@ -68,25 +68,16 @@ namespace Cores::Xochip{
 			}
 		}
 
-		uint8_t read(uint16_t addr){
-			if(addr > 65536){
-				std::cout << "GURU MEDITATION mem out of bounds read\n";
-				return 0;
-			}else{
-				return mem[addr];
-			}
+		uint_fast8_t read(uint16_t addr) {
+			return mem[addr];
 		}
-		
-		uint16_t read16(uint16_t addr){
-			return (mem[(addr & 65535)] << 8) + mem[((addr+1) & 65535)];
+
+		uint_fast16_t read16(uint16_t addr) {
+			return (mem[addr] << 8) + mem[(addr + 1)];
 		}
-		
-		void write(uint8_t val, uint16_t addr){
-			if(addr > 65536){
-				std::cout << "GURU MEDITATION mem out of bounds write\n";
-			}else{
-				mem[addr] = val;
-			}
+
+		void write(uint8_t val, uint16_t addr) {
+			mem[addr] = val;
 		}
 	} bus;
 	
@@ -105,8 +96,8 @@ namespace Cores::Xochip{
 
 		//Variables for the interpreter
 		int planeSelect = 1;
-		uint16_t curOpcode;
-		uint16_t curOpcodeMSB;
+		uint_fast16_t curOpcode;
+		uint8_t curOpcodeMSB;
 		uint16_t stack[16];
 		uint64_t loggedTicks = 0;
 		
@@ -127,11 +118,11 @@ namespace Cores::Xochip{
 			return pitch;
 		}
 		
-		int getScreenX(){
+		uint8_t getScreenX(){
 			return (hiresMode ? 128 : 64);
 		}
 		
-		int getScreenY(){
+		uint8_t getScreenY(){
 			return (hiresMode ? 64 : 32);	
 		}
 		
@@ -189,8 +180,6 @@ namespace Cores::Xochip{
 		}
 		
 		inline void tick(uint32_t steps){
-			uint8_t flagRef;
-			uint8_t pixelRef;
 			for(uint32_t a = 0; a < steps; a++){
 				curOpcode = bus.read16(pc);
 				curOpcodeMSB = (curOpcode & 0xF000) >> 12;
@@ -213,27 +202,33 @@ namespace Cores::Xochip{
 								}
 								break;
 							case 0x00FB: //SCR
-								for(int y = 0; y < getScreenY(); y++){
-									for(int x = getScreenX()-1; x >= 0; x--){
-										if(x < 4){
-											display[x][y] &= ~planeSelect;
-										}else{
-											pixelRef = (display[x][y] & ~planeSelect);
-											display[x][y] = (display[((x-4) & (getScreenX()-1))][y] & (planeSelect & 0x0F));
-											display[x][y] |= (pixelRef & 0x0F);
+								{
+									uint8_t pixelRef;
+									for(int y = 0; y < getScreenY(); y++){
+										for(int x = getScreenX()-1; x >= 0; x--){
+											if(x < 4){
+												display[x][y] &= ~planeSelect;
+											}else{
+												pixelRef = (display[x][y] & ~planeSelect);
+												display[x][y] = (display[((x-4) & (getScreenX()-1))][y] & (planeSelect & 0x0F));
+												display[x][y] |= pixelRef;
+											}
 										}
 									}
 								}
 								break;
 							case 0x00FC: //SCL
-								for(int y = 0; y < getScreenY(); y++){
-									for(int x = 0; x < getScreenX(); x++){
-										if(x >= (getScreenX()-4)){
-											display[x][y] &= ~planeSelect;
-										}else{
-											pixelRef = (display[x][y] & ~planeSelect);
-											display[x][y] = (display[((x+4) & (getScreenX()-1))][y] & (planeSelect & 0x0F));
-											display[x][y] |= (pixelRef & 0x0F);
+								{
+									uint8_t pixelRef;
+									for(int y = 0; y < getScreenY(); y++){
+										for(int x = 0; x < getScreenX(); x++){
+											if(x >= (getScreenX()-4)){
+												display[x][y] &= ~planeSelect;
+											}else{
+												pixelRef = (display[x][y] & ~planeSelect);
+												display[x][y] = (display[((x+4) & (getScreenX()-1))][y] & (planeSelect & 0x0F));
+												display[x][y] |= pixelRef;
+											}
 										}
 									}
 								}
@@ -251,10 +246,11 @@ namespace Cores::Xochip{
 								}
 								break;
 							default:
-								switch(((curOpcode & 0x00F0) >> 4)){
-									case 0x0C: //SCD
-										{
-											uint8_t offset = (curOpcode & 0x000F);
+								{
+									uint8_t offset = (curOpcode & 0x000F);
+									uint8_t pixelRef;
+									switch(((curOpcode & 0x00F0) >> 4)){
+										case 0x0C: //SCD
 											for(int y = getScreenY()-1; y >= 0; y--){
 												for(int x = 0; x < getScreenX(); x++){
 													if(y < offset){
@@ -262,15 +258,12 @@ namespace Cores::Xochip{
 													}else{
 														pixelRef = (display[x][y] & ~planeSelect);
 														display[x][y] = (display[x][(y-offset) & (getScreenY()-1)] & (planeSelect & 0x0F));
-														display[x][y] |= (pixelRef & 0x0F);
+														display[x][y] |= pixelRef;
 													}
 												}
 											}
-										}
-										break;
-									case 0x0D: //SCU
-										{
-											uint8_t offset = (curOpcode & 0x000F);
+											break;
+										case 0x0D: //SCU
 											for(int y = 0; y < getScreenY(); y++){
 												for(int x = 0; x < getScreenX(); x++){
 													if(y >= (getScreenY()-offset)){
@@ -278,16 +271,16 @@ namespace Cores::Xochip{
 													}else{
 														pixelRef = (display[x][y] & ~planeSelect);
 														display[x][y] = (display[x][(y+offset) & (getScreenY()-1)] & (planeSelect & 0x0F));
-														display[x][y] |= (pixelRef & 0x0F);
+														display[x][y] |= pixelRef;
 													}
 												}
 											}
-										}
-										break;
-									default:
-										std::cout << "GURU MEDITATION unknown opcode\n";
-										getDebugInfo();
-										break;
+											break;
+										default:
+											std::cout << "GURU MEDITATION unknown opcode\n";
+											getDebugInfo();
+											break;
+									}
 								}
 								break;
 						}
@@ -306,27 +299,26 @@ namespace Cores::Xochip{
 						break;
 					case 0x03: //SE
 						if(v[((curOpcode & 0x0F00) >> 8)] == (curOpcode & 0x00FF)){
-							(bus.read16(pc) == 0xF000) ? pc+=4 : pc+=2;
+							pc += (bus.read16(pc) == 0xF000) ? 4 : 2;
 						}
 						break;
 					case 0x04: //SNE
 						if(v[((curOpcode & 0x0F00) >> 8)] != (curOpcode & 0x00FF)){
-							(bus.read16(pc) == 0xF000) ? pc+=4 : pc+=2;
+							pc += (bus.read16(pc) == 0xF000) ? 4 : 2;
 						}
 						break;
 					case 0x05:
 						{
 							uint8_t regA = ((curOpcode & 0x0F00) >> 8);
 							uint8_t regB = ((curOpcode & 0x00F0) >> 4);
-							uint8_t small = fmin(regA, regB);
 							switch(curOpcode & 0x000F){
 								case 0: //SE 
 									if(v[regA] == v[regB]){
-										(bus.read16(pc) == 0xF000) ? pc+=4 : pc+=2;
+										pc += (bus.read16(pc) == 0xF000) ? 4 : 2;
 									}
 									break;
 								case 2: //LD
-									if(small == regA){
+									if(regB > regA){
 										for(int a = regA; a <= regB; a++){
 											bus.write(v[a], i+(a-regA));
 										}
@@ -337,7 +329,7 @@ namespace Cores::Xochip{
 									}
 									break;
 								case 3: //LD
-									if(small == regA){
+									if(regB > regA){
 										for(int a = regA; a <= regB; a++){
 											v[a] = bus.read(i+(a-regA));
 										}
@@ -361,54 +353,57 @@ namespace Cores::Xochip{
 						v[((curOpcode & 0x0F00) >> 8)] += (curOpcode & 0x00FF);
 						break;
 					case 0x08: 
-						switch(curOpcode & 0x000F){
-							case 0x0: //LD
-								v[((curOpcode & 0x0F00) >> 8)] = v[((curOpcode & 0x00F0) >> 4)];
-								break;
-							case 0x1: //OR
-								v[((curOpcode & 0x0F00) >> 8)] |= v[((curOpcode & 0x00F0) >> 4)];
-								break;
-							case 0x2: //AND
-								v[((curOpcode & 0x0F00) >> 8)] &= v[((curOpcode & 0x00F0) >> 4)];
-								break;
-							case 0x3: //XOR
-								v[((curOpcode & 0x0F00) >> 8)] ^= v[((curOpcode & 0x00F0) >> 4)];
-								break;
-							case 0x4: //ADD
-								flagRef = (v[((curOpcode & 0x0F00) >> 8)] + v[((curOpcode & 0x00F0) >> 4)] >= 256);
-								v[((curOpcode & 0x0F00) >> 8)] += v[((curOpcode & 0x00F0) >> 4)];
-								v[15] = flagRef;
-								break;
-							case 0x5: //SUB
-								flagRef = (v[((curOpcode & 0x0F00) >> 8)] >= v[((curOpcode & 0x00F0) >> 4)]);
-								v[((curOpcode & 0x0F00) >> 8)] -= v[((curOpcode & 0x00F0) >> 4)];
-								v[15] = flagRef;
-								break;
-							case 0x6: //SHR
-								flagRef = (v[((curOpcode & 0x00F0) >> 4)] & 0b00000001);
-								v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] >> 1);
-								v[15] = flagRef;
-								break;
-							case 0x7: //SUBN
-								flagRef = (v[((curOpcode & 0x00F0) >> 4)] >= v[((curOpcode & 0x0F00) >> 8)]);
-								v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] - v[((curOpcode & 0x0F00) >> 8)]);
-								v[15] = flagRef;
-								break;
-							case 0xE: //SHL
-								flagRef = (v[((curOpcode & 0x00F0) >> 4)] >> 7);
-								v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] << 1);
-								v[15] = flagRef;
-								break;
-							default:
-								std::cout << "GURU MEDITATION unknown opcode\n";
-								getDebugInfo();
-								break;
+						{
+							uint8_t flagRef;
+							switch(curOpcode & 0x000F){
+								case 0x0: //LD
+									v[((curOpcode & 0x0F00) >> 8)] = v[((curOpcode & 0x00F0) >> 4)];
+									break;
+								case 0x1: //OR
+									v[((curOpcode & 0x0F00) >> 8)] |= v[((curOpcode & 0x00F0) >> 4)];
+									break;
+								case 0x2: //AND
+									v[((curOpcode & 0x0F00) >> 8)] &= v[((curOpcode & 0x00F0) >> 4)];
+									break;
+								case 0x3: //XOR
+									v[((curOpcode & 0x0F00) >> 8)] ^= v[((curOpcode & 0x00F0) >> 4)];
+									break;
+								case 0x4: //ADD
+									flagRef = (v[((curOpcode & 0x0F00) >> 8)] + v[((curOpcode & 0x00F0) >> 4)] >= 256);
+									v[((curOpcode & 0x0F00) >> 8)] += v[((curOpcode & 0x00F0) >> 4)];
+									v[15] = flagRef;
+									break;
+								case 0x5: //SUB
+									flagRef = (v[((curOpcode & 0x0F00) >> 8)] >= v[((curOpcode & 0x00F0) >> 4)]);
+									v[((curOpcode & 0x0F00) >> 8)] -= v[((curOpcode & 0x00F0) >> 4)];
+									v[15] = flagRef;
+									break;
+								case 0x6: //SHR
+									flagRef = (v[((curOpcode & 0x00F0) >> 4)] & 0b00000001);
+									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] >> 1);
+									v[15] = flagRef;
+									break;
+								case 0x7: //SUBN
+									flagRef = (v[((curOpcode & 0x00F0) >> 4)] >= v[((curOpcode & 0x0F00) >> 8)]);
+									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] - v[((curOpcode & 0x0F00) >> 8)]);
+									v[15] = flagRef;
+									break;
+								case 0xE: //SHL
+									flagRef = (v[((curOpcode & 0x00F0) >> 4)] >> 7);
+									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] << 1);
+									v[15] = flagRef;
+									break;
+								default:
+									std::cout << "GURU MEDITATION unknown opcode\n";
+									getDebugInfo();
+									break;
+							}
 						}
 						break;
 					case 0x09: //SNE
 						if((curOpcode & 0x000F) == 0){
 							if(v[((curOpcode & 0x0F00) >> 8)] != v[((curOpcode & 0x00F0) >> 4)]){
-								(bus.read16(pc) == 0xF000) ? pc+=4 : pc+=2;
+								pc += (bus.read16(pc) == 0xF000) ? 4 : 2;
 							}
 						}
 						break;
@@ -427,19 +422,21 @@ namespace Cores::Xochip{
 							uint8_t posY = v[((curOpcode & 0x00F0) >> 4)];
 							uint8_t spriteHeight = ((curOpcode & 0x00F) == 0) ? 16 : (curOpcode & 0x00F);
 							uint8_t planeIterator = 0;
+							uint8_t pixelRef;
+							int8_t pixel;
 							v[15] = false;
 							for(int plane = 0; plane < 4; plane++){
 								if((planeSelect & (1 << plane))){
 									for(int y = 0; y < spriteHeight; y++){
 										for(int z = 0; z <= (spriteHeight == 16); z++){
-											flagRef = bus.read(i+(y*(1+(spriteHeight == 16)))+z+((spriteHeight == 16) ? planeIterator*32 : planeIterator*spriteHeight));
+											pixel = bus.read(i+(y*(1+(spriteHeight == 16)))+z+((spriteHeight == 16) ? planeIterator*32 : planeIterator*spriteHeight));
 											for(int x = 0; x < 8; x++){
-												if(((flagRef & (0b10000000 >> x))) && (display[(posX+x+(z*8)) & (getScreenX()-1)][(posY+y) & (getScreenY()-1)] & (1 << plane))){
+												if(((pixel & (0b10000000 >> x))) && (display[(posX+x+(z*8)) & (getScreenX()-1)][(posY+y) & (getScreenY()-1)] & (1 << plane))){
 													v[15] = true;
 												}
 												pixelRef = (display[(posX+x+(z*8)) & (getScreenX()-1)][(posY+y) & (getScreenY()-1)] & ~planeSelect);
-												display[(posX+x+(z*8)) & (getScreenX()-1)][(posY+y) & (getScreenY()-1)] ^= (((flagRef & (0b10000000 >> x)) >> (7-x)) << plane);
-												display[(posX+x+(z*8)) & (getScreenX()-1)][(posY+y) & (getScreenY()-1)] |= (pixelRef & 0x0F);
+												display[(posX+x+(z*8)) & (getScreenX()-1)][(posY+y) & (getScreenY()-1)] ^= (((pixel & (0b10000000 >> x)) >> (7-x)) << plane);
+												display[(posX+x+(z*8)) & (getScreenX()-1)][(posY+y) & (getScreenY()-1)] |= pixelRef;
 											}
 										}
 									}
@@ -452,12 +449,12 @@ namespace Cores::Xochip{
 						switch((curOpcode & 0x00FF)){
 							case 0x9E: //SKP
 								if(key[v[((curOpcode & 0x0F00) >> 8)] & 0x0F]){
-									(bus.read16(pc) == 0xF000) ? pc+=4 : pc+=2;
+									pc += (bus.read16(pc) == 0xF000) ? 4 : 2;
 								}
 							break;
 							case 0xA1: //SKNP
 								if(!key[v[((curOpcode & 0x0F00) >> 8)] & 0x0F]){
-									(bus.read16(pc) == 0xF000) ? pc+=4 : pc+=2;
+									pc += (bus.read16(pc) == 0xF000) ? 4 : 2;
 								}
 							break;
 							default:

@@ -16,106 +16,32 @@ namespace Cores::Chip8{
 			}
 		}
 		
-		void setup(){
-			mem[0] = 0xF0;
-			mem[1] = 0x90;
-			mem[2] = 0x90;
-			mem[3] = 0x90;
-			mem[4] = 0xF0;
-			//Sprite for 0
-			mem[5] = 0x20;
-			mem[6] = 0x60;
-			mem[7] = 0x20;
-			mem[8] = 0x20;
-			mem[9] = 0x70;
-			//Sprite for 1
-			mem[10] = 0xF0;
-			mem[11] = 0x10;
-			mem[12] = 0xF0;
-			mem[13] = 0x80;
-			mem[14] = 0xF0;
-			//Sprite for 2
-			mem[15] = 0xF0;
-			mem[16] = 0x10;
-			mem[17] = 0xF0;
-			mem[18] = 0x10;
-			mem[19] = 0xF0;
-			//Sprite for 3
-			mem[20] = 0x90;
-			mem[21] = 0x90;
-			mem[22] = 0xF0;
-			mem[23] = 0x10;
-			mem[24] = 0x10;
-			//Sprite for 4
-			mem[25] = 0xF0;
-			mem[26] = 0x80;
-			mem[27] = 0xF0;
-			mem[28] = 0x10;
-			mem[29] = 0xF0;
-			//Sprite for 5
-			mem[30] = 0xF0;
-			mem[31] = 0x80;
-			mem[32] = 0xF0;
-			mem[33] = 0x90;
-			mem[34] = 0xF0;
-			//Sprite for 6
-			mem[35] = 0xF0;
-			mem[36] = 0x10;
-			mem[37] = 0x20;
-			mem[38] = 0x40;
-			mem[39] = 0x40;
-			//Sprite for 7
-			mem[40] = 0xF0;
-			mem[41] = 0x90;
-			mem[42] = 0xF0;
-			mem[43] = 0x90;
-			mem[44] = 0xF0;
-			//Sprite for 8
-			mem[45] = 0xF0;
-			mem[46] = 0x90;
-			mem[47] = 0xF0;
-			mem[48] = 0x10;
-			mem[49] = 0xF0;
-			//Sprite for 9
-			mem[50] = 0xF0;
-			mem[51] = 0x90;
-			mem[52] = 0xF0;
-			mem[53] = 0x90;
-			mem[54] = 0x90;
-			//Sprite for A
-			mem[55] = 0xE0;
-			mem[56] = 0x90;
-			mem[57] = 0xE0;
-			mem[58] = 0x90;
-			mem[59] = 0xE0;
-			//Sprite for B
-			mem[60] = 0xF0;
-			mem[61] = 0x80;
-			mem[62] = 0x80;
-			mem[63] = 0x80;
-			mem[64] = 0xF0;
-			//Sprite for C
-			mem[65] = 0xE0;
-			mem[66] = 0x90;
-			mem[67] = 0x90;
-			mem[68] = 0x90;
-			mem[69] = 0xE0;
-			//Sprite for D
-			mem[70] = 0xF0;
-			mem[71] = 0x80;
-			mem[72] = 0xF0;
-			mem[73] = 0x80;
-			mem[74] = 0xF0;
-			//Sprite for E
-			mem[75] = 0xF0;
-			mem[76] = 0x80;
-			mem[77] = 0xF0;
-			mem[78] = 0x80;
-			mem[79] = 0x80;
-			//Sprite for F
+		void populateFont(){
+			uint8_t pixelFont[16*5] = {
+				//Five-line font
+				0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+				0x20, 0x60, 0x20, 0x20, 0x70, // 1
+				0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+				0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+				0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+				0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+				0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+				0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+				0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+				0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+				0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+				0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+				0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+				0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+				0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+				0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+			};
+			for(int i = 0; i < (16*5); i++){
+				mem[i] = pixelFont[i];
+			}
 		}
 
-		uint8_t read(uint16_t addr){
+		uint_fast8_t read(uint16_t addr){
 			if(addr > 4095){
 				std::cout << "GURU MEDITATION mem out of bounds read\n";
 				return 0;
@@ -124,7 +50,7 @@ namespace Cores::Chip8{
 			}
 		}
 		
-		uint16_t readOpcode(uint16_t addr){
+		uint_fast16_t readOpcode(uint16_t addr){
 			return (mem[(addr & 4095)] << 8) + mem[((addr+1) & 4095)];
 		}
 		
@@ -150,8 +76,8 @@ namespace Cores::Chip8{
 		uint8_t st = 0; //Sound timer
 
 		//Variables for the interpreter
-		uint16_t curOpcode;
-		uint16_t curOpcodeMSB;
+		uint_fast16_t curOpcode;
+		uint8_t curOpcodeMSB;
 		uint16_t stack[12];
 		uint64_t loggedTicks = 0;
 		
@@ -159,7 +85,7 @@ namespace Cores::Chip8{
 		bool key[16];
 		uint8_t tempKey = 16;
 		bool release = true;
-		bool display[64][32];
+		uint8_t display[64][32];
 		bool displayWait = true;
 		
 		bool getSound(){
@@ -195,7 +121,6 @@ namespace Cores::Chip8{
 		}
 		
 		inline void tick(uint32_t steps){
-			uint8_t flagRef;
 			for(uint32_t a = 0; a < steps; a++){
 				curOpcode = bus.readOpcode(pc);
 				curOpcodeMSB = (curOpcode & 0xF000) >> 12;
@@ -260,52 +185,55 @@ namespace Cores::Chip8{
 					case 0x07: //ADD
 						v[((curOpcode & 0x0F00) >> 8)] += (curOpcode & 0x00FF);
 						break;
-					case 0x08: 
-						switch(curOpcode & 0x000F){
-							case 0x0: //LD
-								v[((curOpcode & 0x0F00) >> 8)] = v[((curOpcode & 0x00F0) >> 4)];
-								break;
-							case 0x1: //OR
-								v[((curOpcode & 0x0F00) >> 8)] |= v[((curOpcode & 0x00F0) >> 4)];
-								v[15] = false;
-								break;
-							case 0x2: //AND
-								v[((curOpcode & 0x0F00) >> 8)] &= v[((curOpcode & 0x00F0) >> 4)];
-								v[15] = false;
-								break;
-							case 0x3: //XOR
-								v[((curOpcode & 0x0F00) >> 8)] ^= v[((curOpcode & 0x00F0) >> 4)];
-								v[15] = false;
-								break;
-							case 0x4: //ADD
-								flagRef = (v[((curOpcode & 0x0F00) >> 8)] + v[((curOpcode & 0x00F0) >> 4)] >= 256);
-								v[((curOpcode & 0x0F00) >> 8)] += v[((curOpcode & 0x00F0) >> 4)];
-								v[15] = flagRef;
-								break;
-							case 0x5: //SUB
-								flagRef = (v[((curOpcode & 0x0F00) >> 8)] >= v[((curOpcode & 0x00F0) >> 4)]);
-								v[((curOpcode & 0x0F00) >> 8)] -= v[((curOpcode & 0x00F0) >> 4)];
-								v[15] = flagRef;
-								break;
-							case 0x6: //SHR
-								flagRef = (v[((curOpcode & 0x00F0) >> 4)] & 0b00000001);
-								v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] >> 1);
-								v[15] = flagRef;
-								break;
-							case 0x7: //SUBN
-								flagRef = (v[((curOpcode & 0x00F0) >> 4)] >= v[((curOpcode & 0x0F00) >> 8)]);
-								v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] - v[((curOpcode & 0x0F00) >> 8)]);
-								v[15] = flagRef;
-								break;
-							case 0xE: //SHL
-								flagRef = (v[((curOpcode & 0x00F0) >> 4)] >> 7);
-								v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] << 1);
-								v[15] = flagRef;
-								break;
-							default:
-								std::cout << "GURU MEDITATION unknown opcode\n";
-								getDebugInfo();
-								break;
+					case 0x08:
+						{
+							uint8_t flagRef;
+							switch(curOpcode & 0x000F){
+								case 0x0: //LD
+									v[((curOpcode & 0x0F00) >> 8)] = v[((curOpcode & 0x00F0) >> 4)];
+									break;
+								case 0x1: //OR
+									v[((curOpcode & 0x0F00) >> 8)] |= v[((curOpcode & 0x00F0) >> 4)];
+									v[15] = false;
+									break;
+								case 0x2: //AND
+									v[((curOpcode & 0x0F00) >> 8)] &= v[((curOpcode & 0x00F0) >> 4)];
+									v[15] = false;
+									break;
+								case 0x3: //XOR
+									v[((curOpcode & 0x0F00) >> 8)] ^= v[((curOpcode & 0x00F0) >> 4)];
+									v[15] = false;
+									break;
+								case 0x4: //ADD
+									flagRef = (v[((curOpcode & 0x0F00) >> 8)] + v[((curOpcode & 0x00F0) >> 4)] >= 256);
+									v[((curOpcode & 0x0F00) >> 8)] += v[((curOpcode & 0x00F0) >> 4)];
+									v[15] = flagRef;
+									break;
+								case 0x5: //SUB
+									flagRef = (v[((curOpcode & 0x0F00) >> 8)] >= v[((curOpcode & 0x00F0) >> 4)]);
+									v[((curOpcode & 0x0F00) >> 8)] -= v[((curOpcode & 0x00F0) >> 4)];
+									v[15] = flagRef;
+									break;
+								case 0x6: //SHR
+									flagRef = (v[((curOpcode & 0x00F0) >> 4)] & 0b00000001);
+									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] >> 1);
+									v[15] = flagRef;
+									break;
+								case 0x7: //SUBN
+									flagRef = (v[((curOpcode & 0x00F0) >> 4)] >= v[((curOpcode & 0x0F00) >> 8)]);
+									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] - v[((curOpcode & 0x0F00) >> 8)]);
+									v[15] = flagRef;
+									break;
+								case 0xE: //SHL
+									flagRef = (v[((curOpcode & 0x00F0) >> 4)] >> 7);
+									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] << 1);
+									v[15] = flagRef;
+									break;
+								default:
+									std::cout << "GURU MEDITATION unknown opcode\n";
+									getDebugInfo();
+									break;
+							}
 						}
 						break;
 					case 0x09: //SNE
@@ -325,24 +253,25 @@ namespace Cores::Chip8{
 						v[((curOpcode & 0x0F00) >> 8)] = (rand() & (curOpcode & 0x00FF));
 						break;
 					case 0x0D: //DRW
-						{
+                        {
 							uint8_t posX = (v[((curOpcode & 0x0F00) >> 8)] & 63);
 							uint8_t posY = (v[((curOpcode & 0x00F0) >> 4)] & 31);
+							uint8_t pixels;
 							v[15] = false;
 							for(int h = 0; h < (curOpcode & 0x000F); h++){
 								if((h + posY) > 31){
 									break;
 								}
-								flagRef = bus.read(i+h);
-								for(int w = 0; w < 8; w++){
-									uint8_t pixel = (flagRef & (0b10000000 >> w));
-									if((w + posX) > 63){
+								pixels = bus.read(i+h);
+								for(int w = posX; w < (posX+8); w++){
+									if(w > 63){
 										break;
 									}
-									if(pixel && display[(posX+w)][(posY+h)]){
+									if((pixels & 128) & display[w][(posY+h)]){
 										v[15] = true;
 									}
-									display[(posX+w)][(posY+h)] ^= (pixel >> (7-w));
+									display[w][(posY+h)] ^= (pixels & 128);
+									pixels <<= 1;
 								}
 							}
 							if(displayWait){
@@ -596,7 +525,7 @@ namespace Cores::Chip8{
 			}
 			if(fileFound){
 				init = true;
-				bus.setup();
+				bus.populateFont();
 			}
 		}
 	};

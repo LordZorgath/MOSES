@@ -6,6 +6,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
+#set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 project(MOSES)
 
 if(NOT DEFINED CMAKE_CXX_STANDARD)
@@ -21,7 +22,7 @@ set(SDL_STATIC ON)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 	set(CMAKE_CXX_FLAGS_DEBUG "-Og -std=c++23 -O0 -Wall -Wextra -fsanitize=shift -fsanitize=undefined -fsanitize=address -fsanitize=signed-integer-overflow -D_GLIBCXX_DEBUG")
-	set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+	set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math -flto")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
