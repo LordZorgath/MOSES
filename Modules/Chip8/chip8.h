@@ -256,20 +256,24 @@ namespace Cores::Chip8{
 							uint8_t posY = (v[((curOpcode & 0x00F0) >> 4)] & 31);
 							uint8_t pixels;
 							v[15] = false;
-							for(int h = 0; h < (curOpcode & 0x000F); h++){
+							for(uint8_t h = 0; h < (curOpcode & 0x000F); ++h){
 								if((h + posY) > 31){
 									break;
 								}
 								pixels = bus.read(i+h);
-								for(int w = posX; w < (posX+8); w++){
+								for(uint8_t w = posX; w < (posX+8); ++w){
 									if(w > 63){
 										break;
 									}
-									if((pixels & 128) & display[w][(posY+h)]){
+									auto& disp = display[w][(posY+h)];
+									if((pixels & 128) & disp){
 										v[15] = true;
 									}
-									display[w][(posY+h)] ^= (pixels & 128);
+									disp ^= (pixels & 128);
 									pixels <<= 1;
+									if(pixels == 0){
+										break;
+									}
 								}
 							}
 							if(displayWait){
