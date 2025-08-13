@@ -27,6 +27,7 @@
 #include <sstream>
 #include "vendored/SDL3-3.2.16/include/SDL3/SDL.h"
 #include "vendored/json/include/nlohmann/json.hpp"
+#include "vendored/flags/include/flags.h"
 #include "Modules/Chip8/chip8.h"
 #include "Modules/NES/nes.h"
 #include "Modules/AppleII/appleii.h"
@@ -92,7 +93,7 @@ int main(int argc, char* argv[]){
 	WindowArgs *winArgs;
 	double targetFPS = 60.0;
 	bool run = true;
-	bool perfTimer = false;
+	constexpr bool perfTimer = false;
 	int tickedFrames = 0;
 	int tickLimit = 3600;
 	std::string *arguments = new std::string[argc];

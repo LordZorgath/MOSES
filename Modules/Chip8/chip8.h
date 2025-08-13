@@ -77,7 +77,6 @@ namespace Cores::Chip8{
 
 		//Variables for the interpreter
 		uint_fast16_t curOpcode;
-		uint8_t curOpcodeMSB;
 		uint16_t stack[12];
 		uint64_t loggedTicks = 0;
 		
@@ -123,9 +122,8 @@ namespace Cores::Chip8{
 		inline void tick(uint32_t steps){
 			for(uint32_t a = 0; a < steps; a++){
 				curOpcode = bus.readOpcode(pc);
-				curOpcodeMSB = (curOpcode & 0xF000) >> 12;
 				pc+=2;
-				switch(curOpcodeMSB){
+				switch((curOpcode >> 12)){
 					case 0x00:
 						switch(curOpcode){
 							case 0x00E0: //CLS
@@ -253,7 +251,7 @@ namespace Cores::Chip8{
 						v[((curOpcode & 0x0F00) >> 8)] = (rand() & (curOpcode & 0x00FF));
 						break;
 					case 0x0D: //DRW
-                        {
+						{
 							uint8_t posX = (v[((curOpcode & 0x0F00) >> 8)] & 63);
 							uint8_t posY = (v[((curOpcode & 0x00F0) >> 4)] & 31);
 							uint8_t pixels;

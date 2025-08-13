@@ -97,7 +97,6 @@ namespace Cores::Xochip{
 		//Variables for the interpreter
 		int planeSelect = 1;
 		uint_fast16_t curOpcode;
-		uint8_t curOpcodeMSB;
 		uint16_t stack[16];
 		uint64_t loggedTicks = 0;
 		
@@ -182,9 +181,8 @@ namespace Cores::Xochip{
 		inline void tick(uint32_t steps){
 			for(uint32_t a = 0; a < steps; a++){
 				curOpcode = bus.read16(pc);
-				curOpcodeMSB = (curOpcode & 0xF000) >> 12;
 				pc+=2;
-				switch(curOpcodeMSB){
+				switch((curOpcode >> 12)){
 					case 0x00:
 						switch(curOpcode){
 							case 0x00E0: //CLS
@@ -210,7 +208,7 @@ namespace Cores::Xochip{
 												display[x][y] &= ~planeSelect;
 											}else{
 												pixelRef = (display[x][y] & ~planeSelect);
-												display[x][y] = (display[((x-4) & (getScreenX()-1))][y] & (planeSelect & 0x0F));
+												display[x][y] = (display[((x-4) & (getScreenX()-1))][y] & planeSelect);
 												display[x][y] |= pixelRef;
 											}
 										}
@@ -226,7 +224,7 @@ namespace Cores::Xochip{
 												display[x][y] &= ~planeSelect;
 											}else{
 												pixelRef = (display[x][y] & ~planeSelect);
-												display[x][y] = (display[((x+4) & (getScreenX()-1))][y] & (planeSelect & 0x0F));
+												display[x][y] = (display[((x+4) & (getScreenX()-1))][y] & planeSelect);
 												display[x][y] |= pixelRef;
 											}
 										}
@@ -248,29 +246,28 @@ namespace Cores::Xochip{
 							default:
 								{
 									uint8_t offset = (curOpcode & 0x000F);
-									uint8_t pixelRef;
-									switch(((curOpcode & 0x00F0) >> 4)){
-										case 0x0C: //SCD
+									switch((curOpcode & 0x00F0)){
+										case 0xC0: //SCD
 											for(int y = getScreenY()-1; y >= 0; y--){
 												for(int x = 0; x < getScreenX(); x++){
 													if(y < offset){
 														display[x][y] &= ~planeSelect;
 													}else{
-														pixelRef = (display[x][y] & ~planeSelect);
-														display[x][y] = (display[x][(y-offset) & (getScreenY()-1)] & (planeSelect & 0x0F));
+														uint8_t pixelRef = (display[x][y] & ~planeSelect);
+														display[x][y] = (display[x][(y-offset) & (getScreenY()-1)] & planeSelect);
 														display[x][y] |= pixelRef;
 													}
 												}
 											}
 											break;
-										case 0x0D: //SCU
+										case 0xD0: //SCU
 											for(int y = 0; y < getScreenY(); y++){
 												for(int x = 0; x < getScreenX(); x++){
 													if(y >= (getScreenY()-offset)){
 														display[x][y] &= ~planeSelect;
 													}else{
-														pixelRef = (display[x][y] & ~planeSelect);
-														display[x][y] = (display[x][(y+offset) & (getScreenY()-1)] & (planeSelect & 0x0F));
+														uint8_t pixelRef = (display[x][y] & ~planeSelect);
+														display[x][y] = (display[x][(y+offset) & (getScreenY()-1)] & planeSelect);
 														display[x][y] |= pixelRef;
 													}
 												}

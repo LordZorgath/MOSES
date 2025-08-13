@@ -30,6 +30,7 @@ endif()
 
 add_subdirectory(vendored/SDL3-3.2.16 EXCLUDE_FROM_ALL)
 add_subdirectory(vendored/json EXCLUDE_FROM_ALL)
+add_subdirectory(vendored/flags EXCLUDE_FROM_ALL)
 add_executable(MOSES main.cpp)
 target_link_libraries(MOSES SDL3::SDL3)
 target_link_libraries(MOSES nlohmann_json::nlohmann_json)
