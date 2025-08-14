@@ -51,7 +51,7 @@ namespace Cores::Chip8{
 		}
 		
 		uint_fast16_t readOpcode(uint16_t addr){
-			return (mem[(addr & 4095)] << 8) + mem[((addr+1) & 4095)];
+			return (mem[(addr % 4096)] << 8) | mem[((addr+1) % 4096)];
 		}
 		
 		void write(uint8_t val, uint16_t addr){

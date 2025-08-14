@@ -70,7 +70,7 @@ namespace Cores::Schip{
 		}
 		
 		uint16_t readOpcode(uint16_t addr){
-			return (mem[(addr & 4095)] << 8) + mem[((addr+1) & 4095)];
+			return (mem[(addr & 4095)] << 8) | mem[((addr+1) & 4095)];
 		}
 		
 		void write(uint8_t val, uint16_t addr){
@@ -95,14 +95,13 @@ namespace Cores::Schip{
 		uint8_t st = 0; //Sound timer
 
 		//Variables for the interpreter
-		uint16_t curOpcode;
-		uint16_t curOpcodeMSB;
+		uint_fast16_t curOpcode;
 		uint16_t stack[12];
 		uint64_t loggedTicks = 0;
 		
 		public:
 		bool key[16];
-		bool display[128][64];
+		uint8_t display[128][64];
 		bool displayWait = true;
 		bool hiresMode = false;
 		bool release = true;
@@ -150,12 +149,10 @@ namespace Cores::Schip{
 		}
 		
 		inline void tick(uint32_t steps){
-			uint8_t flagRef;
 			for(uint32_t a = 0; a < steps; a++){
 				curOpcode = bus.readOpcode(pc);
-				curOpcodeMSB = (curOpcode & 0xF000) >> 12;
 				pc+=2;
-				switch(curOpcodeMSB){
+				switch((curOpcode >> 12)){
 					case 0x00:
 						switch(curOpcode){
 							case 0x00E0: //CLS
@@ -278,48 +275,51 @@ namespace Cores::Schip{
 						v[((curOpcode & 0x0F00) >> 8)] += (curOpcode & 0x00FF);
 						break;
 					case 0x08: 
-						switch(curOpcode & 0x000F){
-							case 0x0: //LD
-								v[((curOpcode & 0x0F00) >> 8)] = v[((curOpcode & 0x00F0) >> 4)];
-								break;
-							case 0x1: //OR
-								v[((curOpcode & 0x0F00) >> 8)] |= v[((curOpcode & 0x00F0) >> 4)];
-								break;
-							case 0x2: //AND
-								v[((curOpcode & 0x0F00) >> 8)] &= v[((curOpcode & 0x00F0) >> 4)];
-								break;
-							case 0x3: //XOR
-								v[((curOpcode & 0x0F00) >> 8)] ^= v[((curOpcode & 0x00F0) >> 4)];
-								break;
-							case 0x4: //ADD
-								flagRef = (v[((curOpcode & 0x0F00) >> 8)] + v[((curOpcode & 0x00F0) >> 4)] >= 256);
-								v[((curOpcode & 0x0F00) >> 8)] += v[((curOpcode & 0x00F0) >> 4)];
-								v[15] = flagRef;
-								break;
-							case 0x5: //SUB
-								flagRef = (v[((curOpcode & 0x0F00) >> 8)] >= v[((curOpcode & 0x00F0) >> 4)]);
-								v[((curOpcode & 0x0F00) >> 8)] -= v[((curOpcode & 0x00F0) >> 4)];
-								v[15] = flagRef;
-								break;
-							case 0x6: //SHR
-								flagRef = (v[((curOpcode & 0x0F00) >> 8)] & 0b00000001);
-								v[((curOpcode & 0x0F00) >> 8)] >>= 1;
-								v[15] = flagRef;
-								break;
-							case 0x7: //SUBN
-								flagRef = (v[((curOpcode & 0x00F0) >> 4)] >= v[((curOpcode & 0x0F00) >> 8)]);
-								v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] - v[((curOpcode & 0x0F00) >> 8)]);
-								v[15] = flagRef;
-								break;
-							case 0xE: //SHL
-								flagRef = ((v[((curOpcode & 0x0F00) >> 8)] & 0b1000000) >> 7);
-								v[((curOpcode & 0x0F00) >> 8)] <<= 1;
-								v[15] = flagRef;
-								break;
-							default:
-								std::cout << "GURU MEDITATION unknown opcode\n";
-								getDebugInfo();
-								break;
+						{
+							uint8_t flagRef;
+							switch(curOpcode & 0x000F){
+								case 0x0: //LD
+									v[((curOpcode & 0x0F00) >> 8)] = v[((curOpcode & 0x00F0) >> 4)];
+									break;
+								case 0x1: //OR
+									v[((curOpcode & 0x0F00) >> 8)] |= v[((curOpcode & 0x00F0) >> 4)];
+									break;
+								case 0x2: //AND
+									v[((curOpcode & 0x0F00) >> 8)] &= v[((curOpcode & 0x00F0) >> 4)];
+									break;
+								case 0x3: //XOR
+									v[((curOpcode & 0x0F00) >> 8)] ^= v[((curOpcode & 0x00F0) >> 4)];
+									break;
+								case 0x4: //ADD
+									flagRef = (v[((curOpcode & 0x0F00) >> 8)] + v[((curOpcode & 0x00F0) >> 4)] >= 256);
+									v[((curOpcode & 0x0F00) >> 8)] += v[((curOpcode & 0x00F0) >> 4)];
+									v[15] = flagRef;
+									break;
+								case 0x5: //SUB
+									flagRef = (v[((curOpcode & 0x0F00) >> 8)] >= v[((curOpcode & 0x00F0) >> 4)]);
+									v[((curOpcode & 0x0F00) >> 8)] -= v[((curOpcode & 0x00F0) >> 4)];
+									v[15] = flagRef;
+									break;
+								case 0x6: //SHR
+									flagRef = (v[((curOpcode & 0x00F0) >> 4)] & 0b00000001);
+									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] >> 1);
+									v[15] = flagRef;
+									break;
+								case 0x7: //SUBN
+									flagRef = (v[((curOpcode & 0x00F0) >> 4)] >= v[((curOpcode & 0x0F00) >> 8)]);
+									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] - v[((curOpcode & 0x0F00) >> 8)]);
+									v[15] = flagRef;
+									break;
+								case 0xE: //SHL
+									flagRef = (v[((curOpcode & 0x00F0) >> 4)] >> 7);
+									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] << 1);
+									v[15] = flagRef;
+									break;
+								default:
+									std::cout << "GURU MEDITATION unknown opcode\n";
+									getDebugInfo();
+									break;
+							}
 						}
 						break;
 					case 0x09: //SNE
@@ -343,21 +343,27 @@ namespace Cores::Schip{
 							uint8_t posX = v[((curOpcode & 0x0F00) >> 8)] & (getScreenX()-1);
 							uint8_t posY = v[((curOpcode & 0x00F0) >> 4)] & (getScreenY()-1);
 							uint8_t spriteHeight = ((curOpcode & 0x000F) == 0 ? 16 : (curOpcode & 0x000F));
+							uint8_t pixels;
 							v[15] = false;
-							for(int y = 0; y < spriteHeight; y++){
-								if((y + posY) > (getScreenY()-1)){
+							for(int h = 0; h < spriteHeight; h++){
+								if((h + posY) > (getScreenY()-1)){
 									break;
 								}
-								for(int w = 0; w <= ((legacy && !hiresMode) ? 0 : (spriteHeight/16)); w++){
-									flagRef = bus.read(i+(y*(1+(spriteHeight/16)))+w);
+								for(int w = 0; w <= ((legacy && !hiresMode) ? 0 : (spriteHeight == 16)); w++){
+									pixels = bus.read(i+(h*(1+(spriteHeight == 16)))+w);
 									for(int x = 0; x < 8; x++){
 										if((posX+x+(w*8)) > (getScreenX()-1)){
 											break;
 										}
-										if(flagRef & (0b10000000 >> x) && display[(posX+x+(w*8))][(posY+y)]){
+										auto& disp = display[(posX+x+(w*8))][(posY+h)];
+										if((pixels & 128) & disp){
 											v[15] = true;
 										}
-										display[(posX+x+(w*8))][(posY+y)] ^= (flagRef & (0b10000000 >> x)) >> (7-x);
+										disp ^= (pixels & 128);
+										pixels <<= 1;
+										if(pixels == 0){
+											break;
+										}
 									}
 								}
 							}

@@ -73,7 +73,7 @@ namespace Cores::Xochip{
 		}
 
 		uint_fast16_t read16(uint16_t addr) {
-			return (mem[addr] << 8) + mem[(addr + 1)];
+			return (mem[addr] << 8) | mem[(addr + 1)];
 		}
 
 		void write(uint8_t val, uint16_t addr) {
@@ -95,7 +95,7 @@ namespace Cores::Xochip{
 		uint8_t st = 0; //Sound timer
 
 		//Variables for the interpreter
-		int planeSelect = 1;
+		uint8_t planeSelect = 1;
 		uint_fast16_t curOpcode;
 		uint16_t stack[16];
 		uint64_t loggedTicks = 0;
@@ -246,6 +246,7 @@ namespace Cores::Xochip{
 							default:
 								{
 									uint8_t offset = (curOpcode & 0x000F);
+									uint8_t pixelRef;
 									switch((curOpcode & 0x00F0)){
 										case 0xC0: //SCD
 											for(int y = getScreenY()-1; y >= 0; y--){
@@ -253,7 +254,7 @@ namespace Cores::Xochip{
 													if(y < offset){
 														display[x][y] &= ~planeSelect;
 													}else{
-														uint8_t pixelRef = (display[x][y] & ~planeSelect);
+														pixelRef = (display[x][y] & ~planeSelect);
 														display[x][y] = (display[x][(y-offset) & (getScreenY()-1)] & planeSelect);
 														display[x][y] |= pixelRef;
 													}
