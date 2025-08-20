@@ -25,6 +25,8 @@
 #include <cmath>
 #include <cstdint>
 #include <sstream>
+#include <stdexcept>
+#include <typeinfo>
 #include "vendored/SDL3-3.2.16/include/SDL3/SDL.h"
 #include "vendored/json/include/nlohmann/json.hpp"
 #include "vendored/flags/include/flags.h"
@@ -43,7 +45,6 @@ SDL_Renderer* render;
 SDL_Texture* frameBuffer;
 SDL_AudioStream* audioOut;
 SDL_AudioSpec sampleSpec;
-
 void sdl_setup(WindowArgs *args){
 	if(!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO)){
 		std::cout << "GURU MEDITATION sdl init %s\n";
@@ -83,8 +84,54 @@ void scaleDisplay(WindowArgs* args, int scale){
 	}
 }
 
+std::map<std::string, std::string> cfgParse(std::string file, std::string core){
+	const int globalArgCount = 3;
+	std::array<std::string, globalArgCount> validSettings = {"scale", "volume", "file"};
+	std::map<std::string, std::string> ret;
+	std::ifstream config(file);
+	if(!config){
+		throw std::invalid_argument("404 file not found");
+	}
+	json settings = json::parse(config);
+	if(!settings.contains("cores")){
+		throw std::invalid_argument("config file invalid");
+	}
+	if(core == "default"){
+		if(!settings.at("cores").contains("default")){
+			throw std::invalid_argument("no default core");
+		}
+		core = settings["cores"]["default"];
+	}
+	if(!settings.at("cores").contains(core)){
+		throw std::invalid_argument("unknown core: " + core);
+	}
+	for(auto& i : settings["cores"][core].items()){
+		for(auto& j : validSettings){
+			if(i.key() == j){
+				ret.insert_or_assign(i.key(), to_string(i.value()));
+				break;
+			}
+		}
+		if(i.key() == "core specific"){
+			json cmd = settings["cores"][core]["core specific"];
+			for(auto& j : cmd.items()){
+				ret.insert_or_assign(j.key(), to_string(j.value()));
+			}
+		}
+	}
+	for(const auto& [key, value] : ret){
+		std::cout << key << value << std::endl;
+	}
+	return ret;
+}
+
+std::map<std::string, std::string> argParse(int argc, const char** argv){
+	
+}
+
 int main(int argc, char* argv[]){
 	const bool* keysPressed = SDL_GetKeyboardState(nullptr);
+	std::map<std::string, std::string> coreSettings;
 	bool coreSet = false;
 	std::vector<bool> keyState;
 	bool debugPause = false;
@@ -96,52 +143,67 @@ int main(int argc, char* argv[]){
 	constexpr bool perfTimer = false;
 	int tickedFrames = 0;
 	int tickLimit = 3600;
-	std::string *arguments = new std::string[argc];
+	const flags::args arguments(argc, argv);
+	auto configFileOpt = arguments.get<std::string>("cfg");
+	auto coreOpt = arguments.get<std::string>("core");
 	try{
-		if(std::string(argv[1]) == "--cfg"){
-			arguments = new std::string[6];
+		if(configFileOpt.has_value()){
+			std::string core = coreOpt.value_or("default");
+			std::string configFile = configFileOpt.value();
+			std::map<std::string, std::string> cfg = cfgParse(configFile, core);
+		}else{
+			
+		}
+	}catch(const std::exception& e){
+		std::string what = e.what();
+		std::cout << "GURU MEDITATION " << ((what == "std::exception") ? "unknown" : what) << "\n";
+	}
+	std::string *argument = new std::string[argc];
+	try{
+		/*if(std::string(argv[1]) == "--cfg"){
+			argument = new std::string[6];
 			std::string desiredCore;
 			std::string confLocation(argv[2]);
 			std::ifstream config(confLocation);
 			json settings = json::parse(config);
-			arguments[0] = "--core";
+			argument[0] = "--core";
 			if(argc < 4){
 				std::cout << "GURU MEDITATION no core set\n";
 				return 1;
 			}
 			desiredCore = std::string(argv[3]);
-			arguments[1] = desiredCore;
-			arguments[2] = "-f";
-			arguments[3] = settings["cores"][desiredCore]["file"];
-			arguments[4] = "-sc";
+			argument[1] = desiredCore;
+			argument[2] = "-f";
+			argument[3] = settings["cores"][desiredCore]["file"];
+			argument[4] = "-sc";
 			int scale = settings["cores"][desiredCore]["scale"];
-			arguments[5] = std::to_string(scale);
-		}else{
+			argument[5] = std::to_string(scale);
+		}else{*/
 			for(int i = 1; i < argc; i++){
-				arguments[i-1] = std::string(argv[i]);
+				argument[i-1] = std::string(argv[i]);
 			}
-		}
-		if(arguments[0] == "--core"){
+	//	}
+		if(argument[0] == "--core"){
 			if(argc >= 3){
-				if(arguments[1] == "chip8"){
+				if(argument[1] == "chip8"){
 					coreSet = true;
-					sys = std::make_unique<Cores::Chip8::System>(argc, arguments);
+					sys = std::make_unique<Cores::Chip8::System>(argc, argument);
 				}
-				if(arguments[1] == "schip"){
+				if(argument[1] == "schip"){
 					coreSet = true;
-					sys = std::make_unique<Cores::Schip::System>(argc, arguments);
+					sys = std::make_unique<Cores::Schip::System>(argc, argument);
 				}
-				if(arguments[1] == "nes"){
+				if(argument[1] == "nes"){
 					coreSet = true;
-					sys = std::make_unique<Cores::Nes::System>(argc, arguments);
+					sys = std::make_unique<Cores::Nes::System>(argc, argument);
 				}
-				if(arguments[1] == "xochip"){
+				if(argument[1] == "xochip"){
 					coreSet = true;
-					sys = std::make_unique<Cores::Xochip::System>(argc, arguments, 1000);
+					sys = std::make_unique<Cores::Xochip::System>(argc, argument, 1000);
 				}
-				if(arguments[1] == "xochip-fast"){
+				if(argument[1] == "xochip-fast"){
 					coreSet = true;
-					sys = std::make_unique<Cores::Xochip::System>(argc, arguments, 200000);
+					sys = std::make_unique<Cores::Xochip::System>(argc, argument, 200000);
 				}
 				if(!(sys -> checkInit())){
 					SDL_Quit();
@@ -160,38 +222,38 @@ int main(int argc, char* argv[]){
 			run = false;
 		}else{
 			int b = 0;
-			while(!arguments[b].empty()){
-				if(arguments[b] == "-sc"){
+			while(!argument[b].empty()){
+				if(argument[b] == "-sc"){
 					b++;
-					if(std::stoi(arguments[b]) < 1){
+					if(std::stoi(argument[b]) < 1){
 						std::cout << "GURU MEDITATION invalid scale factor\n";
 					}else{
-						scaleDisplay(winArgs, std::stoi(arguments[b]));
+						scaleDisplay(winArgs, std::stoi(argument[b]));
 					}
 				}
-				if(arguments[b] == "-vol"){
+				if(argument[b] == "-vol"){
 					b++;
-					sys -> setVolume(std::stoi(arguments[b]));
+					sys -> setVolume(std::stoi(argument[b]));
 				}
-				if(arguments[b] == "--debug"){
+				if(argument[b] == "--debug"){
 					sys -> dbg = true;
 					debugPause = true;
 				}
-				if(arguments[b] == "--writelog"){
+				if(argument[b] == "--writelog"){
 					b++;
-					sys -> setLogOutput(arguments[b]);
+					sys -> setLogOutput(argument[b]);
 				}
-				if(arguments[b] == "--dbgspeed"){
+				if(argument[b] == "--dbgspeed"){
 					b++;
-					sys -> debugStep = stoi(arguments[b]);
+					sys -> debugStep = stoi(argument[b]);
 				}
-				if(arguments[b] == "--breakpoint"){
+				if(argument[b] == "--breakpoint"){
 					b++;
-					if(stoi(arguments[b]) < 1){
+					if(stoi(argument[b]) < 1){
 						std::cout << "GURU MEDITATION invalid breakpoint\n";
 					}else{
 						sys -> breakpointActive = true;
-						sys -> setPcBreakpoint (stoi(arguments[b]));
+						sys -> setPcBreakpoint (stoi(argument[b]));
 					}
 				}
 				b++;
@@ -271,7 +333,7 @@ int main(int argc, char* argv[]){
 			currentTime = SDL_GetTicksNS();
 		}*/
 		//The framerate cap code above is commented out because it is extremely slow. Need a better solution.
-		updateDisplay(&sys -> getFramebuffer(), winArgs);
+		updateDisplay(&sys -> getFrameBuffer(), winArgs);
 		if(perfTimer){
 			tickedFrames++;
 			if(tickedFrames > tickLimit){

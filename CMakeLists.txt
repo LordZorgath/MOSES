@@ -34,6 +34,4 @@ add_subdirectory(vendored/flags EXCLUDE_FROM_ALL)
 add_executable(MOSES main.cpp)
 target_link_libraries(MOSES SDL3::SDL3)
 target_link_libraries(MOSES nlohmann_json::nlohmann_json)
-
-
-
+target_link_libraries(MOSES flags)

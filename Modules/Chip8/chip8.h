@@ -266,7 +266,7 @@ namespace Cores::Chip8{
 										break;
 									}
 									auto& disp = display[w][(posY+h)];
-									if((pixels & 128) & disp){
+									if(pixels & disp){
 										v[15] = true;
 									}
 									disp ^= (pixels & 128);
@@ -415,7 +415,7 @@ namespace Cores::Chip8{
 		float freq = 440 * 2 * M_PI;
 		bool lastFrame = false;
 		
-		void drawFrame(){
+		std::vector<uint32_t>& getFrameBuffer() override{
 			for(int y = 0; y < 32; y++){
 				for(int x = 0; x < 64; x++){
 					if(cpu.display[x][y]){
@@ -425,6 +425,7 @@ namespace Cores::Chip8{
 					}
 				}
 			}
+			return frameBuffer;
 		}
 		
 		void getKey() override{
@@ -487,7 +488,6 @@ namespace Cores::Chip8{
 			getKey();
 			cpu.release = keyRelease;
 			cpu.tick(bclk);
-			drawFrame();
 		}
 		
 		void debugCycle() override{
@@ -499,7 +499,6 @@ namespace Cores::Chip8{
 			}else{
 				cpu.tick(debugStep);
 			}
-			drawFrame();
 			cpu.getDebugInfo();
 		}
 		

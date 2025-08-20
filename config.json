@@ -1,12 +1,14 @@
 {
 	"cores": {
-		"chip8":{
+		"chip8": {
 			"file": "../Games/1dcell.ch8",
 			"scale": 10,
-			"core specific":{
+			"volume": 25,
+			"core specific": {
 				"speed": 2000000,
 				"display wait": false
 			}
-		}
+		},
+		"default": "chip8"
 	}
 }

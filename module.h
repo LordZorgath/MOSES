@@ -138,12 +138,10 @@ namespace Cores{
 		
 		virtual void getKey() = 0;
 		
+		virtual std::vector<uint32_t>& getFrameBuffer() = 0;
+		
 		void addKey(const bool *key){
 			keyCodes = key;
-		}
-		
-		std::vector<uint32_t>& getFramebuffer(){
-			return frameBuffer;
 		}
 		
 		std::string getName(){

@@ -642,7 +642,7 @@ namespace Cores::Xochip{
 		};
 		uint64_t framesTicked = 0;
 		
-		void drawFrame(){
+		std::vector<uint32_t>& getFrameBuffer() override{
 			if(cpu.hiresMode){
 				for(int y = 0; y < 64; y++){
 					for(int x = 0; x < 128; x++){
@@ -657,6 +657,7 @@ namespace Cores::Xochip{
 					}
 				}
 			}
+			return frameBuffer;
 		}
 		
 		void getKey() override{
@@ -704,7 +705,6 @@ namespace Cores::Xochip{
 			getKey();
 			cpu.release = keyRelease;
 			cpu.tick(bclk);
-			drawFrame();
 		}
 		
 		void debugCycle() override{
@@ -726,7 +726,6 @@ namespace Cores::Xochip{
 					}
 				}
 			}
-			drawFrame();
 		}
 		
 		System(int argc, std::string* args, int speed):Module("XO-Chip", speed, 128, 64, 1, 48000, 60.0){

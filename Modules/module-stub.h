@@ -1,11 +1,9 @@
-//NES core for MOSES
-//Friday July 11th, 2025
+//Blank module for easily creating new ones.
+//Wednesday August 20th, 2025
 
 #include "../../module.h"
-#include "bus.h"
-#include "../../CPUs/Interpreter/mos6502-2a03.h"
 
-namespace Cores::Nes{
+namespace Cores::ModuleName{
 	
 	class System:public Module{
 		
@@ -25,7 +23,7 @@ namespace Cores::Nes{
 			return frameBuffer;
 		}
 		
-		System(int argc, std::string* args):Module("Nintendo Entertainment System", 21477272, 256, 240, 2, 48000, 60.0){
+		System(int argc, std::string* args):Module("Debug", 100, 640, 480, 2, 48000, 60.0){
 			init = true;
 		}
 	};

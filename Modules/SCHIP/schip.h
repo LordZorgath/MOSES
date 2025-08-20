@@ -60,7 +60,7 @@ namespace Cores::Schip{
 			}
 		}
 
-		uint8_t read(uint16_t addr){
+		uint_fast8_t read(uint16_t addr){
 			if(addr > 4095){
 				std::cout << "GURU MEDITATION mem out of bounds read\n";
 				return 0;
@@ -69,8 +69,8 @@ namespace Cores::Schip{
 			}
 		}
 		
-		uint16_t readOpcode(uint16_t addr){
-			return (mem[(addr & 4095)] << 8) | mem[((addr+1) & 4095)];
+		uint_fast16_t readOpcode(uint16_t addr){
+			return (mem[(addr % 4096)] << 8) | mem[((addr+1) % 4096)];
 		}
 		
 		void write(uint8_t val, uint16_t addr){
@@ -356,7 +356,7 @@ namespace Cores::Schip{
 											break;
 										}
 										auto& disp = display[(posX+x+(w*8))][(posY+h)];
-										if((pixels & 128) & disp){
+										if(pixels & disp){
 											v[15] = true;
 										}
 										disp ^= (pixels & 128);
@@ -517,7 +517,7 @@ namespace Cores::Schip{
 		float freq = 440 * 2 * M_PI;
 		bool lastFrame = false;
 		
-		void drawFrame(){
+		std::vector<uint32_t>& getFrameBuffer(){
 			if(cpu.hiresMode){
 				for(int y = 0; y < 64; y++){
 					for(int x = 0; x < 128; x++){
@@ -541,6 +541,7 @@ namespace Cores::Schip{
 					}
 				}
 			}
+			return frameBuffer;
 		}
 		
 		void getKey() override{
@@ -603,7 +604,6 @@ namespace Cores::Schip{
 			getKey();
 			cpu.release = keyRelease;
 			cpu.tick(bclk);
-			drawFrame();
 		}
 		
 		void debugCycle() override{
@@ -615,7 +615,6 @@ namespace Cores::Schip{
 			}else{
 				cpu.tick(debugStep);
 			}
-			drawFrame();
 			cpu.getDebugInfo();
 		}
 		
