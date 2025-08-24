@@ -120,15 +120,6 @@ namespace Cores::Schip{
 			return (hiresMode ? 64 : 32);	
 		}
 		
-		void decTimers(){
-			if(dt > 0){
-				dt--;
-			}
-			if(st > 0){
-				st--;
-			}
-		}
-		
 		void getDebugInfo(){
 			std::cout << std::hex << std::endl;
 			std::cout << "KEY ";
@@ -149,6 +140,8 @@ namespace Cores::Schip{
 		}
 		
 		inline void tick(uint32_t steps){
+			dt = (dt == 0) ? 0 : --dt;
+			st = (st == 0) ? 0 : --st;
 			for(uint32_t a = 0; a < steps; a++){
 				curOpcode = bus.readOpcode(pc);
 				pc+=2;
@@ -601,13 +594,11 @@ namespace Cores::Schip{
 		
 		void runCycle() override{
 			getKey();
-			cpu.decTimers();
 			cpu.tick(bclk);
 		}
 		
 		void debugCycle() override{
 			getKey();
-			cpu.decTimers();
 			if(doWriteLog){
 				writeLogToFile(cpu.loggedTick(debugStep));
 			}else{

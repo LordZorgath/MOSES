@@ -124,16 +124,7 @@ namespace Cores::Xochip{
 		uint8_t getScreenY(){
 			return (hiresMode ? 64 : 32);	
 		}
-		
-		void decTimers(){
-			if(dt > 0){
-				dt--;
-			}
-			if(st > 0){
-				st--;
-			}
-		}
-		
+
 		std::string returnDebugInfo(){
 			std::stringstream ret;
 			ret << std::hex << std::endl;
@@ -179,6 +170,8 @@ namespace Cores::Xochip{
 		}
 		
 		inline void tick(uint32_t steps){
+			dt = (dt == 0) ? 0 : --dt;
+			st = (st == 0) ? 0 : --st;
 			for(uint32_t a = 0; a < steps; a++){
 				curOpcode = bus.read16(pc);
 				pc+=2;
@@ -702,17 +695,14 @@ namespace Cores::Xochip{
 
 		void runCycle() override{
 			getKey();
-			cpu.decTimers();
 			cpu.tick(bclk);
 		}
 		
 		void debugCycle() override{
 			getKey();
-			cpu.decTimers();
 			cpu.pcBreakpoint = pcBreakpoint;
 			if(doWriteLog){
 				writeLogToFile(cpu.loggedTick(debugStep));
-				cpu.decTimers();
 			}else{
 				if(breakpointActive){
 					cpu.breakpointTick(debugStep);
