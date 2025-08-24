@@ -23,7 +23,7 @@ namespace Cores::ModuleName{
 			return frameBuffer;
 		}
 		
-		System(int argc, std::string* args):Module("Debug", 100, 640, 480, 2, 48000, 60.0){
+		System(int argc, std::string* args):Module("ModuleName", 100, 640, 480, 2, 48000, 60.0){
 			init = true;
 		}
 	};

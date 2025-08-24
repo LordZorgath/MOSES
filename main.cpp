@@ -299,10 +299,6 @@ int main(int argc, char* argv[]){
 					run = false;
 					break;
 				}
-				sys -> keyRelease = false;
-				break;
-			case SDL_EVENT_KEY_UP:
-				sys -> keyRelease = true;
 				break;
 			case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
 				SDL_DestroyWindow(mainWindow);

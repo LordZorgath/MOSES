@@ -396,20 +396,20 @@ namespace Cores::Schip{
 								v[(curOpcode & 0x0F00) >> 8] = dt;
 								break;
 							case 0x0A: //LD
-								if(!release){
-									for(int i = 0; i < 16; i++){
-										if(key[i]){
-											tempKey = i;
-											break;
-										}
-									}
-									pc-=2;
-								}else{
-									if(tempKey == 16){
+								for(int i = 0; i < 16; i++){
+									if(key[i]){
+										tempKey = i;
 										pc-=2;
-									}else{
-										v[((curOpcode & 0x0F00) >> 8)] = tempKey;
-										tempKey = 16;
+										return;
+									}else if(i == 15){
+										if(tempKey != 16){
+											v[((curOpcode & 0x0F00) >> 8)] = tempKey;
+											tempKey = 16;
+											break;
+										}else{
+											pc-=2;
+											return;
+										}
 									}
 								}
 								break;
@@ -600,16 +600,14 @@ namespace Cores::Schip{
 		}
 		
 		void runCycle() override{
-			cpu.decTimers();
 			getKey();
-			cpu.release = keyRelease;
+			cpu.decTimers();
 			cpu.tick(bclk);
 		}
 		
 		void debugCycle() override{
-			cpu.decTimers();
 			getKey();
-			cpu.release = keyRelease;
+			cpu.decTimers();
 			if(doWriteLog){
 				writeLogToFile(cpu.loggedTick(debugStep));
 			}else{

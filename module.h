@@ -99,7 +99,6 @@ namespace Cores{
 		
 		public:
 		uint32_t debugStep = 1;
-		bool keyRelease = false;
 		bool breakpointActive = false;
 		bool dbg = false;
 		
