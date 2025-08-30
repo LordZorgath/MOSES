@@ -153,7 +153,7 @@ public:
     void dumpTotalStats() const
     {
         auto totalTime = std::chrono::duration_cast<std::chrono::microseconds>(_lastStatsTime - _startTime).count();
-        auto totalMips = static_cast<double>(_lastStatsCycles) / totalTime;
+        auto totalMips = static_cast<double>(_lastStatsCycles - _startCycles) / totalTime;
         auto totalFps = static_cast<double>(_totalFrames - WARMUP_FRAMES) / totalTime * 1000000.0;
         std::snprintf(_buffer.data(), _buffer.size() - 1, "Overall averages: %.2fps, %.2fMips", totalFps, totalMips);
         printf("%s\n", _buffer.data());
