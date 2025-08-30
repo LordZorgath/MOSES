@@ -716,29 +716,28 @@ namespace Cores::Xochip{
 			}
 		}
 		
-		System(int argc, std::string* args, int speed):Module("XO-Chip", speed, 128, 64, 1, 48000, 60.0){
+		System(std::map<std::string, std::string> args):Module("XO-Chip", 1000, 128, 64, 1, 48000, 60.0){
 			frameBuffer.resize(128*64);
-			bool fileArg = false;
-			for(int i = 0; i < argc; i++){
-				if(args[i] == "-f"){
-					fileArg = true;
-					bus.loadROM(readFile(args[i+1]));
-				}
-				if(args[i] == "-sp"){
-					if(std::stoi(args[i+1]) < 1){
+			std::stringstream coreSettings;
+			coreSettings << args.at("core");
+			std::string curOption;
+			while(getline(coreSettings, curOption, ',')){
+				std::stringstream key;
+				std::string value;
+				key << curOption;
+				getline(key, value, '=');
+				if(value == "speed"){
+					getline(key, value, '=');
+					if(std::stoi(value) < 1){
 						std::cout << "GURU MEDITATION invalid ipf setting\n";
 					}else{
-						bclk = std::stoi(args[i+1]);
+						bclk = std::stoi(value);
 					}
 				}
 			}
-			if(!fileArg){
-				std::cout << "GURU MEDITATION no file argument\n";
-			}
-			if(fileFound){
-				init = true;
-				bus.populateFont();
-			}
+			bus.loadROM(readFile(args.at("file")));
+			init = true;
+			bus.populateFont();
 		}
 	};
 }

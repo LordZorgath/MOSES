@@ -491,32 +491,31 @@ namespace Cores::Chip8{
 			cpu.getDebugInfo();
 		}
 		
-		System(int argc, std::string* args):Module("Chip-8", 16, 64, 32, 1, 48000, 60.0){
+		System(std::map<std::string, std::string> args):Module("Chip-8", 15, 64, 32, 1, 48000, 60.0){
 			frameBuffer.resize(64*32);
-			bool fileArg = false;
-			for(int i = 0; i < argc; i++){
-				if(args[i] == "-f"){
-					fileArg = true;
-					bus.loadROM(readFile(args[i+1]));
-				}
-				if(args[i] == "-sp"){
-					if(std::stoi(args[i+1]) < 1){
-						std::cout << "GURU MEDITATION invalid ipf setting\n";
-					}else{
-						bclk = std::stoi(args[i+1]);
-					}
-				}
-				if(args[i] == "--nodisplaywait"){
+			std::stringstream coreSettings;
+			coreSettings << args.at("core");
+			std::string curOption;
+			while(getline(coreSettings, curOption, ',')){
+				std::stringstream key;
+				std::string value;
+				key << curOption;
+				getline(key, value, '=');
+				if(value == "nodisplaywait"){
 					cpu.displayWait = false;
 				}
+				if(value == "speed"){
+					getline(key, value, '=');
+					if(std::stoi(value) < 1){
+						std::cout << "GURU MEDITATION invalid ipf setting\n";
+					}else{
+						bclk = std::stoi(value);
+					}
+				}
 			}
-			if(!fileArg){
-				std::cout << "GURU MEDITATION no file argument\n";
-			}
-			if(fileFound){
-				init = true;
-				bus.populateFont();
-			}
+			bus.loadROM(readFile(args.at("file")));
+			init = true;
+			bus.populateFont();
 		}
 	};
 }

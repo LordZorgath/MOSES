@@ -29,7 +29,7 @@
 #include <typeinfo>
 #include "vendored/SDL3-3.2.16/include/SDL3/SDL.h"
 #include "vendored/json/include/nlohmann/json.hpp"
-#include "vendored/flags/include/flags.h"
+#include "vendored/CLI11/include/CLI/CLI.hpp"
 #include "Modules/Chip8/chip8.h"
 #include "Modules/NES/nes.h"
 #include "Modules/AppleII/appleii.h"
@@ -45,7 +45,7 @@ SDL_Renderer* render;
 SDL_Texture* frameBuffer;
 SDL_AudioStream* audioOut;
 SDL_AudioSpec sampleSpec;
-void sdl_setup(WindowArgs *args){
+void createWindow(WindowArgs *args){
 	if(!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO)){
 		std::cout << "GURU MEDITATION sdl init %s\n";
 	}
@@ -82,6 +82,13 @@ void scaleDisplay(WindowArgs* args, int scale){
 	if(!SDL_SetWindowSize(mainWindow, args -> getX()*scale, args -> getY()*scale)){
 		std::cout << "GURU MEDITATION window resize\n";
 	}
+}
+
+auto getCore(std::string system, std::map<std::string, std::string> args) -> std::unique_ptr<Cores::Module>{
+	if(system == "nes"){ return std::make_unique<Cores::Nes::System>(args); }
+	if(system == "chip8"){ return std::make_unique<Cores::Chip8::System>(args); }
+	if(system == "schip"){ return std::make_unique<Cores::Schip::System>(args); }
+	if(system == "xochip"){ return std::make_unique<Cores::Xochip::System>(args); }
 }
 
 std::map<std::string, std::string> cfgParse(std::string file, std::string core){
@@ -125,143 +132,68 @@ std::map<std::string, std::string> cfgParse(std::string file, std::string core){
 	return ret;
 }
 
-std::map<std::string, std::string> argParse(int argc, const char** argv){
-	
-}
-
 int main(int argc, char* argv[]){
-	const bool* keysPressed = SDL_GetKeyboardState(nullptr);
-	std::map<std::string, std::string> coreSettings;
-	bool coreSet = false;
-	std::vector<bool> keyState;
+	CLI::App moses{"MOSES"};
+	argv = moses.ensure_utf8(argv);
+	std::map<std::string, std::string> globalSettings;
+	std::optional<std::string> readConfigFile;
+	std::optional<std::string> writeLog;
+	std::optional<std::stringstream> coreOptions;
+	std::string file;
+	bool debug;
+	int scaleFactor;
+	int debugSpeed;
+	std::optional<int> breakPoint;
+	float volume;
+	moses.add_flag("-C, --config", readConfigFile, "Config file to load");
+	moses.add_option("-c, --core", coreOptions, "Core and core-specific options to load");
+	moses.add_option("-s, --scale", scaleFactor, "Integer scaling factor")
+	->default_val(1);
+	moses.add_option("-f, --file", file, "File to be loaded")
+	->required();
+	moses.add_flag("-D, --debug", debug, "Enable debug functions")
+	->default_val(false);
+	moses.add_option("-d, --debugspeed", debugSpeed, "Number of ticks to run before stopping in debug mode")
+	->default_val(1)
+	->needs("--debug");
+	moses.add_option("-b, --breakpoint", breakPoint, "Number of ticks before hitting a breakpoint in debug mode")
+	->needs("--debug");
+	moses.add_option("-w, --writelog", writeLog, "Log interpreter output to a file")
+	->needs("--debug");
+	moses.add_option("-v, --volume", volume, "Volume setting")
+	->default_val(0.25);
+	CLI11_PARSE(moses, argc, argv);
 	bool debugPause = false;
 	bool dbgPauseEnable = true;
-	std::unique_ptr<Module> sys;
-	WindowArgs *winArgs;
-	double targetFPS = 60.0;
 	bool run = true;
-	constexpr bool perfTimer = false;
 	int tickedFrames = 0;
 	int tickLimit = 3600;
-	const flags::args arguments(argc, argv);
-	auto configFileOpt = arguments.get<std::string>("cfg");
-	auto coreOpt = arguments.get<std::string>("core");
-	try{
-		if(configFileOpt.has_value()){
-			std::string core = coreOpt.value_or("default");
-			std::string configFile = configFileOpt.value();
-			std::map<std::string, std::string> cfg = cfgParse(configFile, core);
-		}else{
-			
-		}
-	}catch(const std::exception& e){
-		std::string what = e.what();
-		std::cout << "GURU MEDITATION " << ((what == "std::exception") ? "unknown" : what) << "\n";
+	WindowArgs *winArgs;
+	double targetFPS = 60.0;
+	std::string core;
+	if(!getline(coreOptions.value(), core, ',')){
+		core = "default";
 	}
-	std::string *argument = new std::string[argc];
-	try{
-		/*if(std::string(argv[1]) == "--cfg"){
-			argument = new std::string[6];
-			std::string desiredCore;
-			std::string confLocation(argv[2]);
-			std::ifstream config(confLocation);
-			json settings = json::parse(config);
-			argument[0] = "--core";
-			if(argc < 4){
-				std::cout << "GURU MEDITATION no core set\n";
-				return 1;
-			}
-			desiredCore = std::string(argv[3]);
-			argument[1] = desiredCore;
-			argument[2] = "-f";
-			argument[3] = settings["cores"][desiredCore]["file"];
-			argument[4] = "-sc";
-			int scale = settings["cores"][desiredCore]["scale"];
-			argument[5] = std::to_string(scale);
-		}else{*/
-			for(int i = 1; i < argc; i++){
-				argument[i-1] = std::string(argv[i]);
-			}
-	//	}
-		if(argument[0] == "--core"){
-			if(argc >= 3){
-				if(argument[1] == "chip8"){
-					coreSet = true;
-					sys = std::make_unique<Cores::Chip8::System>(argc, argument);
-				}
-				if(argument[1] == "schip"){
-					coreSet = true;
-					sys = std::make_unique<Cores::Schip::System>(argc, argument);
-				}
-				if(argument[1] == "nes"){
-					coreSet = true;
-					sys = std::make_unique<Cores::Nes::System>(argc, argument);
-				}
-				if(argument[1] == "xochip"){
-					coreSet = true;
-					sys = std::make_unique<Cores::Xochip::System>(argc, argument, 1000);
-				}
-				if(argument[1] == "xochip-fast"){
-					coreSet = true;
-					sys = std::make_unique<Cores::Xochip::System>(argc, argument, 200000);
-				}
-				if(!(sys -> checkInit())){
-					SDL_Quit();
-					run = false;
-				}else{
-					sys -> addKey(keysPressed);
-					winArgs = sys -> getWindowArgs();
-					sdl_setup(winArgs);
-					SDL_SetWindowTitle(mainWindow, ("MOSES: " + sys -> getName()).c_str());
-				}
-			}
-		}
-		if(!coreSet){
-			std::cout << "GURU MEDITATION no core set\n";
-			SDL_Quit();
-			run = false;
-		}else{
-			int b = 0;
-			while(!argument[b].empty()){
-				if(argument[b] == "-sc"){
-					b++;
-					if(std::stoi(argument[b]) < 1){
-						std::cout << "GURU MEDITATION invalid scale factor\n";
-					}else{
-						scaleDisplay(winArgs, std::stoi(argument[b]));
-					}
-				}
-				if(argument[b] == "-vol"){
-					b++;
-					sys -> setVolume(std::stoi(argument[b]));
-				}
-				if(argument[b] == "--debug"){
-					sys -> dbg = true;
-					debugPause = true;
-				}
-				if(argument[b] == "--writelog"){
-					b++;
-					sys -> setLogOutput(argument[b]);
-				}
-				if(argument[b] == "--dbgspeed"){
-					b++;
-					sys -> debugStep = stoi(argument[b]);
-				}
-				if(argument[b] == "--breakpoint"){
-					b++;
-					if(stoi(argument[b]) < 1){
-						std::cout << "GURU MEDITATION invalid breakpoint\n";
-					}else{
-						sys -> breakpointActive = true;
-						sys -> setPcBreakpoint (stoi(argument[b]));
-					}
-				}
-				b++;
-			}
-		}
-	}catch(json::out_of_range){
-		std::cout << "GURU MEDITATION invalid argument\n";
+	if(readConfigFile.has_value()){
+		globalSettings = cfgParse(core, readConfigFile.value());
+	}else{
+		globalSettings.insert_or_assign("core", coreOptions.value().str());
+		globalSettings.insert_or_assign("file", file);
 	}
+	std::unique_ptr<Module> sys = getCore(core, globalSettings);
+	sys -> dbg = debug;
+	sys -> addKey (SDL_GetKeyboardState(nullptr));
+	sys -> setVolume(volume);
+	if(breakPoint.has_value()){
+		sys -> breakpointActive = true;
+		sys -> setPcBreakpoint(breakPoint.value());
+	}
+	if(writeLog.has_value()){
+		sys -> setLogOutput(writeLog.value());
+	}
+	winArgs = sys -> getWindowArgs();
+	createWindow(winArgs);
+	scaleDisplay(winArgs, scaleFactor);
 	uint32_t bufferSize = (winArgs -> getSampleFrequency()/targetFPS)*(winArgs -> getAudioChannels());
 	int16_t *bufferSamples = new int16_t[bufferSize];
 	for(int i = 0; i < bufferSize; i++){
@@ -330,13 +262,5 @@ int main(int argc, char* argv[]){
 		}*/
 		//The framerate cap code above is commented out because it is extremely slow. Need a better solution.
 		updateDisplay(&sys -> getFrameBuffer(), winArgs);
-		if(perfTimer){
-			tickedFrames++;
-			if(tickedFrames > tickLimit){
-				SDL_DestroyWindow(mainWindow);
-				SDL_Quit();
-				run = false;
-			}
-		}
 	}
 };

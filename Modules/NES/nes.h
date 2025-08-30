@@ -25,7 +25,7 @@ namespace Cores::Nes{
 			return frameBuffer;
 		}
 		
-		System(int argc, std::string* args):Module("Nintendo Entertainment System", 21477272, 256, 240, 2, 48000, 60.0){
+		System(std::map<std::string, std::string> args):Module("Nintendo Entertainment System", 21477272, 256, 240, 2, 48000, 60.0){
 			init = true;
 		}
 	};
