@@ -79,14 +79,15 @@ namespace Cores::Chip8{
 		uint_fast16_t curOpcode;
 		uint16_t stack[12];
 		uint64_t loggedTicks = 0;
-		
+
 		public:
 		bool key[16];
 		uint8_t tempKey = 16;
 		bool release = true;
 		uint8_t display[64][32];
 		bool displayWait = true;
-		
+		uint64_t cycles = 0;
+
 		bool getSound(){
 			return (st > 0);
 		}
@@ -270,6 +271,7 @@ namespace Cores::Chip8{
 								}
 							}
 							if(displayWait){
+								cycles += a;
 								return;
 							}
 						}
@@ -302,6 +304,7 @@ namespace Cores::Chip8{
 									if(key[i]){
 										tempKey = i;
 										pc-=2;
+										cycles += a;
 										return;
 									}else if(i == 15){
 										if(tempKey != 16){
@@ -310,6 +313,7 @@ namespace Cores::Chip8{
 											break;
 										}else{
 											pc-=2;
+											cycles += a;
 											return;
 										}
 									}
@@ -359,6 +363,7 @@ namespace Cores::Chip8{
 							break;
 				}
 			}
+			cycles += steps;
 		}
 		
 		inline std::string loggedTick(uint32_t steps){
@@ -489,6 +494,10 @@ namespace Cores::Chip8{
 				cpu.tick(debugStep);
 			}
 			cpu.getDebugInfo();
+		}
+
+		uint64_t getCycles() const override {
+			return cpu.cycles;
 		}
 		
 		System(std::map<std::string, std::string> args):Module("Chip-8", 15, 64, 32, 1, 48000, 60.0){
