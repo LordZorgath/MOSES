@@ -101,7 +101,9 @@ namespace Cores{
 		uint32_t debugStep = 1;
 		bool breakpointActive = false;
 		bool dbg = false;
-		
+
+		virtual ~Module() = default;
+
 		void setPcBreakpoint(uint64_t i){
 			pcBreakpoint = i;
 		}
@@ -138,6 +140,8 @@ namespace Cores{
 		virtual void getKey() = 0;
 		
 		virtual std::vector<uint32_t>& getFrameBuffer() = 0;
+
+		virtual uint64_t getCycles() const {}
 		
 		void addKey(const bool *key){
 			keyCodes = key;

@@ -36,6 +36,7 @@
 #include "Modules/CPUTest/cputest.h"
 #include "Modules/XO-Chip/xochip.h"
 #include "Modules/SCHIP/schip.h"
+#include "vendored/ghc/fpscount.hpp"
 
 using namespace Cores;
 using json = nlohmann::json;
@@ -267,6 +268,9 @@ int main(int argc, char* argv[]){
 	for(int i = 0; i < bufferSize; i++){
 		bufferSamples[i] = 0;
 	}
+
+	ghc::FPSCounter fps;
+
 	while(run){
 		//ulong time = SDL_GetTicksNS();
 		SDL_Event event;
@@ -330,6 +334,9 @@ int main(int argc, char* argv[]){
 		}*/
 		//The framerate cap code above is commented out because it is extremely slow. Need a better solution.
 		updateDisplay(&sys -> getFrameBuffer(), winArgs);
+		if (fps.frameTick(sys->getCycles())) {
+			SDL_SetWindowTitle(mainWindow, fps.getStatsString(std::string("MOSES: " ) + sys->getName()));
+		}
 		if(perfTimer){
 			tickedFrames++;
 			if(tickedFrames > tickLimit){

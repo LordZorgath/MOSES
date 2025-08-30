@@ -510,7 +510,7 @@ namespace Cores::Schip{
 		float freq = 440 * 2 * M_PI;
 		bool lastFrame = false;
 		
-		std::vector<uint32_t>& getFrameBuffer(){
+		std::vector<uint32_t>& getFrameBuffer() override {
 			if(cpu.hiresMode){
 				for(int y = 0; y < 64; y++){
 					for(int x = 0; x < 128; x++){
