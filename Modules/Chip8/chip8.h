@@ -14,9 +14,6 @@ namespace Cores::Chip8{
 			for(int i = 0; i < rom.size(); i++){
 				mem[0x200+i] = rom[i];
 			}
-		}
-		
-		void populateFont(){
 			uint8_t pixelFont[16*5] = {
 				//Five-line font
 				0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -83,7 +80,6 @@ namespace Cores::Chip8{
 		public:
 		bool key[16];
 		uint8_t tempKey = 16;
-		bool release = true;
 		uint8_t display[64][32];
 		bool displayWait = true;
 		uint64_t cycles = 0;
@@ -523,7 +519,6 @@ namespace Cores::Chip8{
 			}
 			bus.loadROM(readFile(args.at("file")));
 			init = true;
-			bus.populateFont();
 		}
 	};
 }

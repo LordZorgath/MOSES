@@ -69,17 +69,14 @@ void createWindow(WindowArgs *args){
 	SDL_ResumeAudioStreamDevice(audioOut);
 }
 
-void updateDisplay(uint32_t* pixels, WindowArgs *args){
-	int scale = args -> scaleFactor;
-	int w = args -> getX();
-	SDL_SetRenderScale(render, scale, scale);
-	SDL_UpdateTexture(frameBuffer, nullptr, pixels, w*4);
+void updateDisplay(uint32_t* pixels, int width){
+	SDL_UpdateTexture(frameBuffer, nullptr, pixels, width*4);
 	SDL_RenderTexture(render, frameBuffer, nullptr, nullptr);
 	SDL_RenderPresent(render);
 }
 
 void scaleDisplay(WindowArgs* args, int scale){
-	args -> scaleFactor = scale;
+	SDL_SetRenderScale(render, scale, scale);
 	if(!SDL_SetWindowSize(mainWindow, args -> getX()*scale, args -> getY()*scale)){
 		std::cout << "GURU MEDITATION window resize\n";
 	}
@@ -263,7 +260,7 @@ int main(int argc, char* argv[]){
 			currentTime = SDL_GetTicksNS();
 		}*/
 		//The framerate cap code above is commented out because it is extremely slow. Need a better solution.
-		updateDisplay(&sys -> getFrameBuffer(), winArgs);
+		updateDisplay(&sys -> getFrameBuffer(), winArgs -> getX());
 		if (fps.frameTick(sys->getCycles())) {
 			SDL_SetWindowTitle(mainWindow, fps.getStatsString(std::string("MOSES: " ) + sys->getName()));
 		}

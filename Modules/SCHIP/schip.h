@@ -16,9 +16,6 @@ namespace Cores::Schip{
 			for(int i = 0; i < rom.size(); i++){
 				mem[0x200+i] = rom[i];
 			}
-		}
-		
-		void populateFont(){
 			uint8_t pixelFont[16*15] = {
 				//Five-line font
 				0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -104,7 +101,6 @@ namespace Cores::Schip{
 		uint8_t display[128][64];
 		bool displayWait = true;
 		bool hiresMode = false;
-		bool release = true;
 		uint8_t tempKey = 16;
 		bool legacy = false;
 		uint64_t cycles = 0;
@@ -638,7 +634,6 @@ namespace Cores::Schip{
 			}
 			bus.loadROM(readFile(args.at("file")));
 			init = true;
-			bus.populateFont();
 		}
 	};
 }

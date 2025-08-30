@@ -24,9 +24,6 @@ namespace Cores::Xochip{
 			for(int i = 0; i < rom.size(); i++){
 				mem[0x200+i] = rom[i];
 			}
-		}
-		
-		void populateFont(){
 			uint8_t pixelFont[16*15] = {
 				//Five-line font
 				0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -103,7 +100,6 @@ namespace Cores::Xochip{
 		public:
 		bool key[16];
 		bool hiresMode = false;
-		bool release = true;
 		bool breakpointReached = false;
 		uint8_t display[128][64];
 		uint8_t tempKey = 16;
@@ -747,7 +743,6 @@ namespace Cores::Xochip{
 			}
 			bus.loadROM(readFile(args.at("file")));
 			init = true;
-			bus.populateFont();
 		}
 	};
 }

@@ -18,11 +18,9 @@ namespace Cores{
 		double targetFPS;
 		
 		public:
-		int scaleFactor;
-		WindowArgs(int w, int h, int scale, int channel, uint32_t freq, double fps){
+		WindowArgs(int w, int h, int channel, uint32_t freq, double fps){
 			x = w;
 			y = h;
-			scaleFactor = scale;
 			numChannels = channel;
 			sampleFreq = freq;
 			targetFPS = fps;
@@ -91,7 +89,7 @@ namespace Cores{
 		Module(std::string n, int f, int w, int h, int channels, int samples, double fps){
 			frameBuffer.resize(w*h);
 			audioBuffer.resize(2*channels*samples/fps);
-			winArgs = new WindowArgs(w, h, 1, channels, samples, fps);
+			winArgs = new WindowArgs(w, h, channels, samples, fps);
 			name = n;
 			bclk = f;
 			srand(0x69);
