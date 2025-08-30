@@ -59,24 +59,30 @@ namespace Cores{
 		int argc;
 		std::vector<uint32_t> frameBuffer;
 		std::vector<int16_t> audioBuffer;
-		bool init = false;
+		bool init = true;
 		bool fileFound = false;
 		bool doWriteLog = false;
 		const bool *keyCodes;
 		float volume = 0.25;
 		int audioPhase = 0;
 		
-		std::vector<uint8_t> readFile(std::string path){
+		std::vector<uint8_t> readFile(std::string path, int maxFilesize){
 			std::vector<uint8_t> ret;
 			std::ifstream file(path, std::ifstream::binary);
 			if(!file.good()){
 				std::cout << "GURU MEDITATION no file\n";
+				init = false;
 				return ret;
 			}else{
 				file.unsetf(std::ios::skipws);
 				std::streampos fileSize;
 				file.seekg(0, std::ios_base::end);
 				fileSize = file.tellg();
+				if(fileSize > maxFilesize){
+					std::cout << "GURU MEDITATION file too large\n";
+					init = false;
+					return ret;
+				}
 				file.seekg(0, std::ios_base::beg);
 				ret.reserve(fileSize);
 				ret.insert(ret.begin(), std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
@@ -128,7 +134,6 @@ namespace Cores{
 		bool checkInit(){
 			return init;
 		}
-		
 		
 		virtual void runCycle() = 0;
 		

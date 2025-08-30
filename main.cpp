@@ -46,6 +46,7 @@ SDL_Renderer* render;
 SDL_Texture* frameBuffer;
 SDL_AudioStream* audioOut;
 SDL_AudioSpec sampleSpec;
+
 void createWindow(WindowArgs *args){
 	if(!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO)){
 		std::cout << "GURU MEDITATION sdl init %s\n";
@@ -81,12 +82,34 @@ void scaleDisplay(WindowArgs* args, int scale){
 		std::cout << "GURU MEDITATION window resize\n";
 	}
 }
+void cleanExit(std::string message){
+	SDL_DestroyWindow(mainWindow);
+	SDL_DestroyRenderer(render);
+	SDL_DestroyTexture(frameBuffer);
+	SDL_DestroyAudioStream(audioOut);
+	SDL_Quit();
+	std::cout << "GURU MEDITATION " << message << std::endl;
+	exit(1);
+}
+
+void cleanExit(){
+	SDL_DestroyWindow(mainWindow);
+	SDL_DestroyRenderer(render);
+	SDL_DestroyTexture(frameBuffer);
+	SDL_DestroyAudioStream(audioOut);
+	SDL_Quit();
+	exit(0);
+}
 
 auto getCore(std::string system, std::map<std::string, std::string> args) -> std::unique_ptr<Cores::Module>{
 	if(system == "nes"){ return std::make_unique<Cores::Nes::System>(args); }
-	if(system == "chip8"){ return std::make_unique<Cores::Chip8::System>(args); }
-	if(system == "schip"){ return std::make_unique<Cores::Schip::System>(args); }
-	if(system == "xochip"){ return std::make_unique<Cores::Xochip::System>(args); }
+	else if(system == "chip8"){ return std::make_unique<Cores::Chip8::System>(args); }
+	else if(system == "schip"){ return std::make_unique<Cores::Schip::System>(args); }
+	else if(system == "xochip"){ return std::make_unique<Cores::Xochip::System>(args); }
+	else {
+		cleanExit("unknown core: " + system);
+		return 0;
+	}
 }
 
 std::map<std::string, std::string> cfgParse(std::string file, std::string core){
@@ -139,6 +162,7 @@ int main(int argc, char* argv[]){
 	std::optional<std::stringstream> coreOptions;
 	std::string file;
 	bool debug;
+	bool measurePerf;
 	int scaleFactor;
 	int debugSpeed;
 	std::optional<int> breakPoint;
@@ -160,10 +184,16 @@ int main(int argc, char* argv[]){
 	->needs("--debug");
 	moses.add_option("-v, --volume", volume, "Volume setting")
 	->default_val(25);
-	CLI11_PARSE(moses, argc, argv);
+	moses.add_flag("-m, --measure-performance", measurePerf, "Measure performance in cycles and frames per second")
+	->default_val(false);
+	try {
+		moses.parse(argc, argv);
+	}catch(const CLI::ParseError &e){
+		std::cout << "GURU MEDITATION CLI: ";
+		return moses.exit(e);
+	}
 	bool debugPause = false;
 	bool dbgPauseEnable = true;
-	bool run = true;
 	int tickedFrames = 0;
 	int tickLimit = 3600;
 	WindowArgs *winArgs;
@@ -179,6 +209,9 @@ int main(int argc, char* argv[]){
 		globalSettings.insert_or_assign("file", file);
 	}
 	std::unique_ptr<Module> sys = getCore(core, globalSettings);
+	if(!sys -> checkInit()){
+		cleanExit("core init");
+	}
 	sys -> dbg = debug;
 	sys -> addKey (SDL_GetKeyboardState(nullptr));
 	sys -> setVolume(volume);
@@ -198,8 +231,7 @@ int main(int argc, char* argv[]){
 		bufferSamples[i] = 0;
 	}
 	ghc::FPSCounter fps;
-	while(run){
-		//ulong time = SDL_GetTicksNS();
+	while(true){
 		SDL_Event event;
 		while(SDL_PollEvent(&event)){
 			switch( event.type ){
@@ -225,23 +257,14 @@ int main(int argc, char* argv[]){
 					}
 				}
 				if(event.key.key == SDLK_ESCAPE){
-					SDL_DestroyWindow(mainWindow);
-					SDL_Quit();
-					run = false;
-					break;
+					goto finish;
 				}
 				break;
 			case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-				SDL_DestroyWindow(mainWindow);
-				SDL_Quit();
-				run = false;
-				break;
+				goto finish;
 			default:
 				break;
 			}
-		}
-		if(!run){
-			break;
 		}
 		if(sys -> dbg){
 			if(!debugPause && dbgPauseEnable){
@@ -255,15 +278,14 @@ int main(int argc, char* argv[]){
 			SDL_PutAudioStreamData(audioOut, bufferSamples, (SDL_GetAudioStreamAvailable(audioOut) < bufferSize) ? 2*bufferSize : 0);
 			SDL_PutAudioStreamData(audioOut, &sys -> getAudioBuffer(), 2*bufferSize);
 		}
-		/*ulong currentTime = SDL_GetTicksNS();
-		while(currentTime < (time + (1000000000/targetFPS))){
-			currentTime = SDL_GetTicksNS();
-		}*/
-		//The framerate cap code above is commented out because it is extremely slow. Need a better solution.
 		updateDisplay(&sys -> getFrameBuffer(), winArgs -> getX());
-		if (fps.frameTick(sys->getCycles())) {
+		if(fps.frameTick(sys->getCycles()) && measurePerf){
 			SDL_SetWindowTitle(mainWindow, fps.getStatsString(std::string("MOSES: " ) + sys->getName()));
 		}
 	}
-	fps.dumpTotalStats();
+	finish:
+	if(measurePerf){
+		fps.dumpTotalStats();
+	}
+	cleanExit();
 };

@@ -741,8 +741,7 @@ namespace Cores::Xochip{
 					}
 				}
 			}
-			bus.loadROM(readFile(args.at("file")));
-			init = true;
+			bus.loadROM(readFile(args.at("file"), 65024));
 		}
 	};
 }

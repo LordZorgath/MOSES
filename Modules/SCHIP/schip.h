@@ -632,8 +632,7 @@ namespace Cores::Schip{
 					}
 				}
 			}
-			bus.loadROM(readFile(args.at("file")));
-			init = true;
+			bus.loadROM(readFile(args.at("file"), 3584));
 		}
 	};
 }

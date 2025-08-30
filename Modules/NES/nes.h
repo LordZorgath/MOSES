@@ -18,7 +18,7 @@ namespace Cores::Nes{
 		void debugCycle() override{}
 		
 		System(std::map<std::string, std::string> args):Module("Nintendo Entertainment System", 21477272, 256, 240, 2, 48000, 60.0){
-			init = true;
+
 		}
 	};
 };

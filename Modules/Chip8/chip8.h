@@ -517,8 +517,7 @@ namespace Cores::Chip8{
 					}
 				}
 			}
-			bus.loadROM(readFile(args.at("file")));
-			init = true;
+			bus.loadROM(readFile(args.at("file"), 3584));
 		}
 	};
 }
