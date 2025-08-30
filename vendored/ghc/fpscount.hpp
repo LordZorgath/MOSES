@@ -86,11 +86,6 @@ public:
 
     ~FPSCounter()
     {
-        auto totalTime = std::chrono::duration_cast<std::chrono::microseconds>(_lastStatsTime - _startTime).count();
-        auto totalMips = static_cast<double>(_lastStatsCycles) / totalTime;
-        auto totalFps = static_cast<double>(_totalFrames - WARMUP_FRAMES) / totalTime * 1000000.0;
-        std::snprintf(_buffer.data(), _buffer.size() - 1, "Overall averages: %.2fps, %.2fMips", totalFps, totalMips);
-        printf("%s\n", _buffer.data());
     }
 
     /// Call this once per frame. Returns true when displayed stats should be updated, if current number of instructiuons is
@@ -153,6 +148,15 @@ public:
             return _buffer.data();
         }
         return prefix.c_str();
+    }
+
+    void dumpTotalStats() const
+    {
+        auto totalTime = std::chrono::duration_cast<std::chrono::microseconds>(_lastStatsTime - _startTime).count();
+        auto totalMips = static_cast<double>(_lastStatsCycles) / totalTime;
+        auto totalFps = static_cast<double>(_totalFrames - WARMUP_FRAMES) / totalTime * 1000000.0;
+        std::snprintf(_buffer.data(), _buffer.size() - 1, "Overall averages: %.2fps, %.2fMips", totalFps, totalMips);
+        printf("%s\n", _buffer.data());
     }
 
 private:
