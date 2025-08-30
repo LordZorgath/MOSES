@@ -108,6 +108,7 @@ namespace Cores::Xochip{
 		uint8_t display[128][64];
 		uint8_t tempKey = 16;
 		uint64_t pcBreakpoint;
+		uint64_t cycles = 0;
 		
 		bool getSound(){
 			return (st > 0);
@@ -478,6 +479,7 @@ namespace Cores::Xochip{
 									if(key[i]){
 										tempKey = i;
 										pc-=2;
+										cycles += a;
 										return;
 									}else if(i == 15){
 										if(tempKey != 16){
@@ -486,6 +488,7 @@ namespace Cores::Xochip{
 											break;
 										}else{
 											pc-=2;
+											cycles += a;
 											return;
 										}
 									}
@@ -551,6 +554,7 @@ namespace Cores::Xochip{
 							break;
 				}
 			}
+			cycles += steps;
 		}
 		
 		std::string loggedTick(uint32_t steps){
@@ -715,7 +719,11 @@ namespace Cores::Xochip{
 				}
 			}
 		}
-		
+
+		uint64_t getCycles() const override {
+			return cpu.cycles;
+		}
+
 		System(std::map<std::string, std::string> args):Module("XO-Chip", 1000, 128, 64, 1, 48000, 60.0){
 			std::stringstream coreSettings;
 			coreSettings << args.at("core");
