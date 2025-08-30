@@ -11,19 +11,11 @@ namespace Cores::Nes{
 		
 		public:
 		
-		int16_t* playAudio() override{
-			return 0;
-		}
-		
 		void getKey() override{}
 		
 		void runCycle() override{}
 		
 		void debugCycle() override{}
-		
-		std::vector<uint32_t>& getFrameBuffer() override{
-			return frameBuffer;
-		}
 		
 		System(std::map<std::string, std::string> args):Module("Nintendo Entertainment System", 21477272, 256, 240, 2, 48000, 60.0){
 			init = true;

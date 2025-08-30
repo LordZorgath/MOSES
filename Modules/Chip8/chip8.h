@@ -413,19 +413,6 @@ namespace Cores::Chip8{
 		float freq = 440 * 2 * M_PI;
 		bool lastFrame = false;
 		
-		std::vector<uint32_t>& getFrameBuffer() override{
-			for(int y = 0; y < 32; y++){
-				for(int x = 0; x < 64; x++){
-					if(cpu.display[x][y]){
-						frameBuffer[((y*64)+x)] = 0xFFFFFFFF;
-					}else{
-						frameBuffer[((y*64)+x)] = 0xFF000000;
-					}
-				}
-			}
-			return frameBuffer;
-		}
-		
 		void getKey() override{
 			cpu.key[0] = keyCodes[SDL_SCANCODE_X];
 			cpu.key[1] = keyCodes[SDL_SCANCODE_1];
@@ -447,7 +434,7 @@ namespace Cores::Chip8{
 		
 		public:
 		
-		int16_t* playAudio() override{
+		int16_t& getAudioBuffer() override{
 			uint32_t sampleFreq = winArgs -> getSampleFrequency();
 			double targetFPS = winArgs -> getFPS();
 			audioPhase %= sampleFreq;
@@ -455,7 +442,7 @@ namespace Cores::Chip8{
 				lastFrame = true;
 				for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
 					double time = i/(double)sampleFreq;
-					audioSamples[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
+					audioBuffer[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
 				}
 				audioPhase += (sampleFreq/targetFPS);
 			}else{
@@ -466,19 +453,32 @@ namespace Cores::Chip8{
 						double time = i/(double)sampleFreq;
 						if(std::sin(freq*time)*(volume * 32767) <= 10.0f && std::sin(freq*time)*(volume * 32767) >= -10.0f || silent){
 							silent = true;
-							audioSamples[(i-audioPhase)] = 0;
+							audioBuffer[(i-audioPhase)] = 0;
 						}else if(!silent){
-							audioSamples[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
+							audioBuffer[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
 						}
 					}
 				}else{
 					for(int i = 0; i < (sampleFreq/targetFPS); i++){
-						audioSamples[i] = 0;
+						audioBuffer[i] = 0;
 					}
 				}
 				audioPhase = 0;
 			}
-			return audioSamples;
+			return *audioBuffer.data();
+		}
+		
+		uint32_t& getFrameBuffer() override{
+			for(int y = 0; y < 32; y++){
+				for(int x = 0; x < 64; x++){
+					if(cpu.display[x][y]){
+						frameBuffer[((y*64)+x)] = 0xFFFFFFFF;
+					}else{
+						frameBuffer[((y*64)+x)] = 0xFF000000;
+					}
+				}
+			}
+			return *frameBuffer.data();
 		}
 		
 		void runCycle() override{
@@ -501,7 +501,6 @@ namespace Cores::Chip8{
 		}
 		
 		System(std::map<std::string, std::string> args):Module("Chip-8", 15, 64, 32, 1, 48000, 60.0){
-			frameBuffer.resize(64*32);
 			std::stringstream coreSettings;
 			coreSettings << args.at("core");
 			std::string curOption;

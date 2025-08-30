@@ -69,11 +69,11 @@ void createWindow(WindowArgs *args){
 	SDL_ResumeAudioStreamDevice(audioOut);
 }
 
-void updateDisplay(std::vector<uint32_t> *pixels, WindowArgs *args){
+void updateDisplay(uint32_t* pixels, WindowArgs *args){
 	int scale = args -> scaleFactor;
 	int w = args -> getX();
 	SDL_SetRenderScale(render, scale, scale);
-	SDL_UpdateTexture(frameBuffer, nullptr, pixels -> data(), w*4);
+	SDL_UpdateTexture(frameBuffer, nullptr, pixels, w*4);
 	SDL_RenderTexture(render, frameBuffer, nullptr, nullptr);
 	SDL_RenderPresent(render);
 }
@@ -200,6 +200,7 @@ int main(int argc, char* argv[]){
 	for(int i = 0; i < bufferSize; i++){
 		bufferSamples[i] = 0;
 	}
+	ghc::FPSCounter fps;
 	while(run){
 		//ulong time = SDL_GetTicksNS();
 		SDL_Event event;
@@ -255,7 +256,7 @@ int main(int argc, char* argv[]){
 		}else{
 			sys -> runCycle();
 			SDL_PutAudioStreamData(audioOut, bufferSamples, (SDL_GetAudioStreamAvailable(audioOut) < bufferSize) ? 2*bufferSize : 0);
-			SDL_PutAudioStreamData(audioOut, sys -> playAudio(), 2*(winArgs -> getSampleFrequency()/targetFPS)*(winArgs -> getAudioChannels()));
+			SDL_PutAudioStreamData(audioOut, &sys -> getAudioBuffer(), 2*bufferSize);
 		}
 		/*ulong currentTime = SDL_GetTicksNS();
 		while(currentTime < (time + (1000000000/targetFPS))){

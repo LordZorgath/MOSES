@@ -509,8 +509,63 @@ namespace Cores::Schip{
 		private:
 		float freq = 440 * 2 * M_PI;
 		bool lastFrame = false;
+
+		void getKey() override{
+			cpu.key[0] = keyCodes[SDL_SCANCODE_X];
+			cpu.key[1] = keyCodes[SDL_SCANCODE_1];
+			cpu.key[2] = keyCodes[SDL_SCANCODE_2];
+			cpu.key[3] = keyCodes[SDL_SCANCODE_3];
+			cpu.key[4] = keyCodes[SDL_SCANCODE_Q];
+			cpu.key[5] = keyCodes[SDL_SCANCODE_W];
+			cpu.key[6] = keyCodes[SDL_SCANCODE_E];
+			cpu.key[7] = keyCodes[SDL_SCANCODE_A];
+			cpu.key[8] = keyCodes[SDL_SCANCODE_S];
+			cpu.key[9] = keyCodes[SDL_SCANCODE_D];
+			cpu.key[10] = keyCodes[SDL_SCANCODE_Z];
+			cpu.key[11] = keyCodes[SDL_SCANCODE_C];
+			cpu.key[12] = keyCodes[SDL_SCANCODE_4];
+			cpu.key[13] = keyCodes[SDL_SCANCODE_R];
+			cpu.key[14] = keyCodes[SDL_SCANCODE_F];
+			cpu.key[15] = keyCodes[SDL_SCANCODE_V];
+		}
 		
-		std::vector<uint32_t>& getFrameBuffer() override {
+		public:
+		
+		int16_t& getAudioBuffer() override{
+			uint32_t sampleFreq = winArgs -> getSampleFrequency();
+			double targetFPS = winArgs -> getFPS();
+			audioPhase %= sampleFreq;
+			if(cpu.getSound()){
+				lastFrame = true;
+				for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
+					double time = i/(double)sampleFreq;
+					audioBuffer[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
+				}
+				audioPhase += (sampleFreq/targetFPS);
+			}else{
+				if(lastFrame){
+					lastFrame = false;
+					bool silent = false;
+					for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
+						double time = i/(double)sampleFreq;
+						if(std::sin(freq*time)*(volume * 32767) <= 10.0f && std::sin(freq*time)*(volume * 32767) >= -10.0f || silent){
+							silent = true;
+							audioBuffer[(i-audioPhase)] = 0;
+						}else if(!silent){
+							audioBuffer[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
+						}
+					}
+				}else{
+					for(int i = 0; i < (sampleFreq/targetFPS); i++){
+						audioBuffer[i] = 0;
+					}
+				}
+				audioPhase = 0;
+			}
+			return *audioBuffer.data();
+		}
+		
+		uint32_t& getFrameBuffer() override{
 			if(cpu.hiresMode){
 				for(int y = 0; y < 64; y++){
 					for(int x = 0; x < 128; x++){
@@ -534,62 +589,7 @@ namespace Cores::Schip{
 					}
 				}
 			}
-			return frameBuffer;
-		}
-		
-		void getKey() override{
-			cpu.key[0] = keyCodes[SDL_SCANCODE_X];
-			cpu.key[1] = keyCodes[SDL_SCANCODE_1];
-			cpu.key[2] = keyCodes[SDL_SCANCODE_2];
-			cpu.key[3] = keyCodes[SDL_SCANCODE_3];
-			cpu.key[4] = keyCodes[SDL_SCANCODE_Q];
-			cpu.key[5] = keyCodes[SDL_SCANCODE_W];
-			cpu.key[6] = keyCodes[SDL_SCANCODE_E];
-			cpu.key[7] = keyCodes[SDL_SCANCODE_A];
-			cpu.key[8] = keyCodes[SDL_SCANCODE_S];
-			cpu.key[9] = keyCodes[SDL_SCANCODE_D];
-			cpu.key[10] = keyCodes[SDL_SCANCODE_Z];
-			cpu.key[11] = keyCodes[SDL_SCANCODE_C];
-			cpu.key[12] = keyCodes[SDL_SCANCODE_4];
-			cpu.key[13] = keyCodes[SDL_SCANCODE_R];
-			cpu.key[14] = keyCodes[SDL_SCANCODE_F];
-			cpu.key[15] = keyCodes[SDL_SCANCODE_V];
-		}
-		
-		public:
-		
-		int16_t* playAudio() override{
-			uint32_t sampleFreq = winArgs -> getSampleFrequency();
-			double targetFPS = winArgs -> getFPS();
-			audioPhase %= sampleFreq;
-			if(cpu.getSound()){
-				lastFrame = true;
-				for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
-					double time = i/(double)sampleFreq;
-					audioSamples[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
-				}
-				audioPhase += (sampleFreq/targetFPS);
-			}else{
-				if(lastFrame){
-					lastFrame = false;
-					bool silent = false;
-					for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
-						double time = i/(double)sampleFreq;
-						if(std::sin(freq*time)*(volume * 32767) <= 10.0f && std::sin(freq*time)*(volume * 32767) >= -10.0f || silent){
-							silent = true;
-							audioSamples[(i-audioPhase)] = 0;
-						}else if(!silent){
-							audioSamples[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
-						}
-					}
-				}else{
-					for(int i = 0; i < (sampleFreq/targetFPS); i++){
-						audioSamples[i] = 0;
-					}
-				}
-				audioPhase = 0;
-			}
-			return audioSamples;
+			return *frameBuffer.data();
 		}
 		
 		void runCycle() override{
@@ -608,7 +608,6 @@ namespace Cores::Schip{
 		}
 		
 		System(std::map<std::string, std::string> args):Module("SCHIP", 30, 128, 64, 1, 48000, 60.0){
-			frameBuffer.resize(128*64);
 			std::stringstream coreSettings;
 			coreSettings << args.at("core");
 			std::string curOption;

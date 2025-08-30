@@ -60,11 +60,11 @@ namespace Cores{
 		char **argv;
 		int argc;
 		std::vector<uint32_t> frameBuffer;
+		std::vector<int16_t> audioBuffer;
 		bool init = false;
 		bool fileFound = false;
 		bool doWriteLog = false;
 		const bool *keyCodes;
-		int16_t *audioSamples;
 		float volume = 0.25;
 		int audioPhase = 0;
 		
@@ -89,9 +89,9 @@ namespace Cores{
 		}
 		
 		Module(std::string n, int f, int w, int h, int channels, int samples, double fps){
+			frameBuffer.resize(w*h);
+			audioBuffer.resize(2*channels*samples/fps);
 			winArgs = new WindowArgs(w, h, 1, channels, samples, fps);
-			int32_t samplesPerFrame = 2*channels*samples/fps;
-			audioSamples = new int16_t[samplesPerFrame];
 			name = n;
 			bclk = f;
 			srand(0x69);
@@ -131,17 +131,18 @@ namespace Cores{
 			return init;
 		}
 		
-		virtual int16_t* playAudio() = 0;
 		
 		virtual void runCycle() = 0;
 		
 		virtual void debugCycle() = 0;
 		
 		virtual void getKey() = 0;
-		
-		virtual std::vector<uint32_t>& getFrameBuffer() = 0;
 
-		virtual uint64_t getCycles() const {}
+		virtual uint64_t getCycles() const{ return 0; }
+		
+		virtual int16_t& getAudioBuffer(){ return *audioBuffer.data(); }
+		
+		virtual uint32_t& getFrameBuffer(){ return *frameBuffer.data(); }
 		
 		void addKey(const bool *key){
 			keyCodes = key;

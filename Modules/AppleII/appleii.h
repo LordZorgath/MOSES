@@ -10,10 +10,6 @@ namespace Cores::Apple2{
 		
 		public:
 		
-		int16_t* playAudio() override{
-			return 0;
-		}
-		
 		void getKey() override{}
 		
 		void runCycle() override{}

@@ -635,24 +635,6 @@ namespace Cores::Xochip{
 		};
 		uint64_t framesTicked = 0;
 		
-		std::vector<uint32_t>& getFrameBuffer() override{
-			if(cpu.hiresMode){
-				for(int y = 0; y < 64; y++){
-					for(int x = 0; x < 128; x++){
-						frameBuffer[((y*128)+x)] = color[(cpu.display[x][y] & 0x000F)];
-					}
-				}
-			}else{
-				for(int y = 0; y < 64; y++){
-					for(int x = 0; x < 64; x++){
-						frameBuffer[2*((y*64)+x)] =  color[(cpu.display[x][y/2] & 0x000F)];
-						frameBuffer[2*((y*64)+x)+1] =  color[(cpu.display[x][y/2] & 0x000F)];
-					}
-				}
-			}
-			return frameBuffer;
-		}
-		
 		void getKey() override{
 			cpu.key[0] = keyCodes[SDL_SCANCODE_X];
 			cpu.key[1] = keyCodes[SDL_SCANCODE_1];
@@ -674,23 +656,41 @@ namespace Cores::Xochip{
 		
 		public:
 		
-		int16_t* playAudio() override{
+		int16_t& getAudioBuffer() override{
 			uint32_t sampleFreq = winArgs -> getSampleFrequency();
 			double targetFPS = winArgs -> getFPS();
 			if(cpu.getSound()){
 				double stepSize = (cpu.getPitch()/sampleFreq);
 				audioPhase %= sampleFreq;
 				for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
-					audioSamples[(i-audioPhase)] = volume * (bus.samples[(uint32_t)(i*stepSize)&127] ? 32767 : -32767);
+					audioBuffer[(i-audioPhase)] = volume * (bus.samples[(uint32_t)(i*stepSize)&127] ? 32767 : -32767);
 				}
 				audioPhase += (sampleFreq/targetFPS);
 			}else{
 				for(uint32_t i = 0; i < (sampleFreq/targetFPS); i++){
-					audioSamples[i] = 0;
+					audioBuffer[i] = 0;
 				}
 				audioPhase = 0;
 			}
-			return audioSamples;
+			return *audioBuffer.data();
+		}
+		
+		uint32_t& getFrameBuffer() override{
+			if(cpu.hiresMode){
+				for(int y = 0; y < 64; y++){
+					for(int x = 0; x < 128; x++){
+						frameBuffer[((y*128)+x)] = color[(cpu.display[x][y] & 0x000F)];
+					}
+				}
+			}else{
+				for(int y = 0; y < 64; y++){
+					for(int x = 0; x < 64; x++){
+						frameBuffer[2*((y*64)+x)] =  color[(cpu.display[x][y/2] & 0x000F)];
+						frameBuffer[2*((y*64)+x)+1] =  color[(cpu.display[x][y/2] & 0x000F)];
+					}
+				}
+			}
+			return *frameBuffer.data();
 		}
 
 		void runCycle() override{
@@ -717,7 +717,6 @@ namespace Cores::Xochip{
 		}
 		
 		System(std::map<std::string, std::string> args):Module("XO-Chip", 1000, 128, 64, 1, 48000, 60.0){
-			frameBuffer.resize(128*64);
 			std::stringstream coreSettings;
 			coreSettings << args.at("core");
 			std::string curOption;
