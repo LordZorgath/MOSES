@@ -107,6 +107,7 @@ namespace Cores::Schip{
 		bool release = true;
 		uint8_t tempKey = 16;
 		bool legacy = false;
+		uint64_t cycles = 0;
 		
 		bool getSound(){
 			return (st > 0);
@@ -361,6 +362,7 @@ namespace Cores::Schip{
 								}
 							}
 							if(displayWait && !hiresMode && legacy){
+								cycles += a;
 								return;
 							}
 						}
@@ -393,6 +395,7 @@ namespace Cores::Schip{
 									if(key[i]){
 										tempKey = i;
 										pc-=2;
+										cycles += a;
 										return;
 									}else if(i == 15){
 										if(tempKey != 16){
@@ -401,6 +404,7 @@ namespace Cores::Schip{
 											break;
 										}else{
 											pc-=2;
+											cycles += a;
 											return;
 										}
 									}
@@ -461,6 +465,7 @@ namespace Cores::Schip{
 							break;
 				}
 			}
+			cycles += steps;
 		}
 		
 		inline std::string loggedTick(uint32_t steps){
