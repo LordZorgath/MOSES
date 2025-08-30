@@ -726,6 +726,9 @@ namespace Cores::Xochip{
 				std::string value;
 				key << curOption;
 				getline(key, value, '=');
+				if(value == "fast"){
+					bclk = 200000;
+				}
 				if(value == "speed"){
 					getline(key, value, '=');
 					if(std::stoi(value) < 1){

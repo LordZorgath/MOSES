@@ -6,6 +6,7 @@ MOSES is an experimental multi-system emulator, focused mainly, but not exclusiv
 
 ```
 git clone https://github.com/LordZorgath/MOSES
+cd MOSES
 mkdir build && cd build
 cmake ../
 cmake --build ./
@@ -13,16 +14,24 @@ cmake --build ./
 # Run instructions:
 
 ```
-./MOSES --core <core> -f </path/to/game/>
+./MOSES -c, --core <core> -f, --file </path/to/game/>
 ```
-Optional commands: `-sc <integer scaling factor> --vol <volume as a %>`
+Optional commands: `-s, --scale <integer scaling factor> -v, --volume <integer volume, 0-100>`
 
 Supported cores:
 
 `chip8`
 
+`schip`
+
 `xochip`
 
-`xochip-fast` - same as `xochip`, but runs the core much faster, some games require this.
+Core specific options should be specified by adding comma-seperated keys after the core. Values should be seperated by an equals sign. For example, `chip8,nodisplaywait,sp=1000`
 
-`schip` - use `--legacy` argument to emulate HP-48 superchip, otherwise Octo's implementation will be used.
+Valid core specific options:
+
+`chip8`, `schip` and `xochip`: `speed=<integer>`, the number of instructions to execute in a frame.
+
+`chip8` and `schip`: `nodisplaywait`, disables display wait emulation. This is needed to run the cores as fast as possible.
+
+`schip`: `legacy`, enables emulation of legacy Schip behaviour. Otherwise, the Schip core will act as it does in Octo.

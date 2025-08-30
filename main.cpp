@@ -161,7 +161,7 @@ int main(int argc, char* argv[]){
 	moses.add_option("-w, --writelog", writeLog, "Log interpreter output to a file")
 	->needs("--debug");
 	moses.add_option("-v, --volume", volume, "Volume setting")
-	->default_val(0.25);
+	->default_val(25);
 	CLI11_PARSE(moses, argc, argv);
 	bool debugPause = false;
 	bool dbgPauseEnable = true;
