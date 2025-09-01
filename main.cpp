@@ -47,23 +47,23 @@ SDL_Texture* frameBuffer;
 SDL_AudioStream* audioOut;
 SDL_AudioSpec sampleSpec;
 
-void createWindow(WindowArgs *args){
+void createWindow(int w, int h, int s, int c){
 	if(!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO)){
 		std::cout << "GURU MEDITATION sdl init %s\n";
 	}
-	mainWindow = SDL_CreateWindow("MOSES", args -> getX(), args -> getY(), 0);
+	mainWindow = SDL_CreateWindow("MOSES", w, h, 0);
 	render = SDL_CreateRenderer(mainWindow, NULL);
 	if(SDL_SetRenderVSync(render, 1) == false ){
 		std::cout << "GURU MEDITATION vsync %s\n";
 	}
-	frameBuffer = SDL_CreateTexture(render, SDL_PIXELFORMAT_BGRA32, SDL_TEXTUREACCESS_STREAMING, args -> getX(), args -> getY());
+	frameBuffer = SDL_CreateTexture(render, SDL_PIXELFORMAT_BGRA32, SDL_TEXTUREACCESS_STREAMING, w, h);
 	if(frameBuffer == NULL){
 		std::cout << "GURU MEDITATION null texture\n";
 	}
 	SDL_SetTextureBlendMode(frameBuffer, SDL_BLENDMODE_NONE);
 	SDL_SetTextureScaleMode(frameBuffer, SDL_SCALEMODE_NEAREST);
-	sampleSpec.freq = args -> getSampleFrequency();
-	sampleSpec.channels = args -> getAudioChannels();
+	sampleSpec.freq = s;
+	sampleSpec.channels = c;
 	sampleSpec.format = SDL_AUDIO_S16LE;
 	audioOut = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr, nullptr, nullptr);
 	SDL_SetAudioStreamFormat(audioOut, &sampleSpec, &sampleSpec);
@@ -76,9 +76,9 @@ void updateDisplay(uint32_t* pixels, int width){
 	SDL_RenderPresent(render);
 }
 
-void scaleDisplay(WindowArgs* args, int scale){
+void scaleDisplay(int w, int h, int scale){
 	SDL_SetRenderScale(render, scale, scale);
-	if(!SDL_SetWindowSize(mainWindow, args -> getX()*scale, args -> getY()*scale)){
+	if(!SDL_SetWindowSize(mainWindow, w*scale, h*scale)){
 		std::cout << "GURU MEDITATION window resize\n";
 	}
 }
@@ -196,7 +196,6 @@ int main(int argc, char* argv[]){
 	bool dbgPauseEnable = true;
 	int tickedFrames = 0;
 	int tickLimit = 3600;
-	WindowArgs *winArgs;
 	double targetFPS = 60.0;
 	std::string core;
 	if(!getline(coreOptions.value(), core, ',')){
@@ -222,15 +221,15 @@ int main(int argc, char* argv[]){
 	if(writeLog.has_value()){
 		sys -> setLogOutput(writeLog.value());
 	}
-	winArgs = sys -> getWindowArgs();
-	createWindow(winArgs);
-	scaleDisplay(winArgs, scaleFactor);
-	uint32_t bufferSize = (winArgs -> getSampleFrequency()/targetFPS)*(winArgs -> getAudioChannels());
+	createWindow(sys -> getX(), sys -> getY(), sys -> getSampleFrequency(), sys -> getAudioChannels());
+	scaleDisplay(sys -> getX(), sys -> getY(), scaleFactor);
+	uint32_t bufferSize = (sys -> getSampleFrequency()/targetFPS)*(sys -> getAudioChannels());
 	int16_t *bufferSamples = new int16_t[bufferSize];
 	for(int i = 0; i < bufferSize; i++){
 		bufferSamples[i] = 0;
 	}
 	ghc::FPSCounter fps;
+	SDL_SetWindowTitle(mainWindow, ("MOSES: " + sys -> getName()).c_str());
 	while(true){
 		SDL_Event event;
 		while(SDL_PollEvent(&event)){
@@ -278,8 +277,8 @@ int main(int argc, char* argv[]){
 			SDL_PutAudioStreamData(audioOut, bufferSamples, (SDL_GetAudioStreamAvailable(audioOut) < bufferSize) ? 2*bufferSize : 0);
 			SDL_PutAudioStreamData(audioOut, &sys -> getAudioBuffer(), 2*bufferSize);
 		}
-		updateDisplay(&sys -> getFrameBuffer(), winArgs -> getX());
-		if(fps.frameTick(sys->getCycles()) && measurePerf){
+		updateDisplay(&sys -> getFrameBuffer(), sys -> getX());
+		if(measurePerf && fps.frameTick(sys->getCycles())){
 			SDL_SetWindowTitle(mainWindow, fps.getStatsString(std::string("MOSES: " ) + sys->getName()));
 		}
 	}

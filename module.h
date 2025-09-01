@@ -8,7 +8,7 @@
 
 namespace Cores{
 	
-	class WindowArgs{
+	class Module{
 		
 		private:
 		int x;
@@ -17,42 +17,9 @@ namespace Cores{
 		uint32_t sampleFreq;
 		double targetFPS;
 		
-		public:
-		WindowArgs(int w, int h, int channel, uint32_t freq, double fps){
-			x = w;
-			y = h;
-			numChannels = channel;
-			sampleFreq = freq;
-			targetFPS = fps;
-		}
-		
-		int getX(){
-			return x;
-		}
-		
-		int getY(){
-			return y;
-		}
-		
-		uint32_t getSampleFrequency(){
-			return sampleFreq;
-		}
-		
-		int getAudioChannels(){
-			return numChannels;
-		}
-		
-		double getFPS(){
-			return targetFPS;
-		}
-	};
-	
-	class Module{
-		
 		protected:
 		uint64_t pcBreakpoint; 
 		uint64_t bclk;
-		WindowArgs *winArgs;
 		std::string name;
 		std::string outFile;
 		char **argv;
@@ -65,6 +32,8 @@ namespace Cores{
 		const bool *keyCodes;
 		float volume = 0.25;
 		int audioPhase = 0;
+		
+		virtual void getKey() = 0;
 		
 		std::vector<uint8_t> readFile(std::string path, int maxFilesize){
 			std::vector<uint8_t> ret;
@@ -93,15 +62,40 @@ namespace Cores{
 		}
 		
 		Module(std::string n, int f, int w, int h, int channels, int samples, double fps){
+			x = w;
+			y = h;
+			numChannels = channels;
+			sampleFreq = samples;
+			targetFPS = fps;
 			frameBuffer.resize(w*h);
 			audioBuffer.resize(2*channels*samples/fps);
-			winArgs = new WindowArgs(w, h, channels, samples, fps);
 			name = n;
 			bclk = f;
 			srand(0x69);
 		};
 		
 		public:
+
+		int getX(){
+			return x;
+		}
+		
+		int getY(){
+			return y;
+		}
+		
+		uint32_t getSampleFrequency(){
+			return sampleFreq;
+		}
+		
+		int getAudioChannels(){
+			return numChannels;
+		}
+		
+		double getFPS(){
+			return targetFPS;
+		}
+		
 		uint32_t debugStep = 1;
 		bool breakpointActive = false;
 		bool dbg = false;
@@ -138,8 +132,6 @@ namespace Cores{
 		virtual void runCycle() = 0;
 		
 		virtual void debugCycle() = 0;
-		
-		virtual void getKey() = 0;
 
 		virtual uint64_t getCycles() const{ return 0; }
 		
@@ -153,10 +145,6 @@ namespace Cores{
 		
 		std::string getName(){
 			return name;
-		}
-		
-		WindowArgs* getWindowArgs(){
-			return winArgs;
 		}
 	};
 }

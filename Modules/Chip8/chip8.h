@@ -431,8 +431,8 @@ namespace Cores::Chip8{
 		public:
 		
 		int16_t& getAudioBuffer() override{
-			uint32_t sampleFreq = winArgs -> getSampleFrequency();
-			double targetFPS = winArgs -> getFPS();
+			uint32_t sampleFreq = getSampleFrequency();
+			double targetFPS = getFPS();
 			audioPhase %= sampleFreq;
 			if(cpu.getSound()){
 				lastFrame = true;

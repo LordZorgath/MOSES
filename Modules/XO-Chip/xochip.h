@@ -657,8 +657,8 @@ namespace Cores::Xochip{
 		public:
 		
 		int16_t& getAudioBuffer() override{
-			uint32_t sampleFreq = winArgs -> getSampleFrequency();
-			double targetFPS = winArgs -> getFPS();
+			uint32_t sampleFreq = getSampleFrequency();
+			double targetFPS = getFPS();
 			if(cpu.getSound()){
 				double stepSize = (cpu.getPitch()/sampleFreq);
 				audioPhase %= sampleFreq;
