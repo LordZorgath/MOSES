@@ -194,8 +194,6 @@ int main(int argc, char* argv[]){
 	}
 	bool debugPause = false;
 	bool dbgPauseEnable = true;
-	int tickedFrames = 0;
-	int tickLimit = 3600;
 	double targetFPS = 60.0;
 	std::string core;
 	if(!getline(coreOptions.value(), core, ',')){

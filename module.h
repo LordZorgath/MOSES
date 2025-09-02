@@ -22,12 +22,9 @@ namespace Cores{
 		uint64_t bclk;
 		std::string name;
 		std::string outFile;
-		char **argv;
-		int argc;
 		std::vector<uint32_t> frameBuffer;
 		std::vector<int16_t> audioBuffer;
 		bool init = true;
-		bool fileFound = false;
 		bool doWriteLog = false;
 		const bool *keyCodes;
 		float volume = 0.25;
@@ -56,7 +53,6 @@ namespace Cores{
 				ret.reserve(fileSize);
 				ret.insert(ret.begin(), std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 				file.close();
-				fileFound = true;
 				return ret;
 			}
 		}
