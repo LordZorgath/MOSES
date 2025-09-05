@@ -75,7 +75,6 @@ namespace Cores::Chip8{
 		//Variables for the interpreter
 		uint_fast16_t curOpcode;
 		uint16_t stack[12];
-		uint64_t loggedTicks = 0;
 
 		public:
 		bool key[16];
@@ -365,7 +364,7 @@ namespace Cores::Chip8{
 		inline std::string loggedTick(uint32_t steps){
 			std::stringstream ret;
 			for(int a = 0; a < steps; a++){
-				ret << std::hex << std::setfill('0') << "[" << std::setw(8) << +loggedTicks << "] ";
+				ret << std::hex << std::setfill('0') << "[" << std::setw(8) << +cycles << "] ";
 				for(int b = 0; b < 16; b++){
 					ret << std::setw(1);
 					switch(b){ //This is really dumb. Whatever.
@@ -398,7 +397,6 @@ namespace Cores::Chip8{
 				ret << "PC:" << std::setw(4) << +pc << " ";
 				tick(1);
 				ret << "O:" << std::setw(4) << +curOpcode << "\n";
-				loggedTicks++;
 			}
 			return ret.str();
 		}
