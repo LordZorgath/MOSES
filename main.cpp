@@ -27,16 +27,18 @@
 #include <sstream>
 #include <stdexcept>
 #include <typeinfo>
+#include <thread>
+#include <chrono>
 #include "vendored/SDL3-3.2.16/include/SDL3/SDL.h"
 #include "vendored/json/include/nlohmann/json.hpp"
 #include "vendored/CLI11/include/CLI/CLI.hpp"
+#include "vendored/ghc/fpscount.hpp"
 #include "Modules/Chip8/chip8.h"
 #include "Modules/NES/nes.h"
 #include "Modules/AppleII/appleii.h"
 #include "Modules/CPUTest/cputest.h"
 #include "Modules/XO-Chip/xochip.h"
 #include "Modules/SCHIP/schip.h"
-#include "vendored/ghc/fpscount.hpp"
 
 using namespace Cores;
 using json = nlohmann::json;
@@ -161,20 +163,22 @@ int main(int argc, char* argv[]){
 	std::optional<std::string> writeLog;
 	std::optional<std::stringstream> coreOptions;
 	std::string file;
-	bool debug;
-	bool measurePerf;
+	bool debug = false;
+	bool measurePerf = false;
+	bool uncapFPS = false;
 	int scaleFactor;
 	int debugSpeed;
 	std::optional<int> breakPoint;
 	float volume;
+	moses.add_flag("-D, --debug", debug, "Enable debug functions");
 	moses.add_flag("-C, --config", readConfigFile, "Config file to load");
+	moses.add_flag("-m, --measure-performance", measurePerf, "Measure performance in cycles and frames per second");
+	moses.add_flag("-u, --unlimited-framerate", uncapFPS, "Run the core as fast as possible instead of limiting framerate");
 	moses.add_option("-c, --core", coreOptions, "Core and core-specific options to load");
 	moses.add_option("-s, --scale", scaleFactor, "Integer scaling factor")
 	->default_val(1);
 	moses.add_option("-f, --file", file, "File to be loaded")
 	->required();
-	moses.add_flag("-D, --debug", debug, "Enable debug functions")
-	->default_val(false);
 	moses.add_option("-d, --debugspeed", debugSpeed, "Number of ticks to run before stopping in debug mode")
 	->default_val(1)
 	->needs("--debug");
@@ -184,8 +188,6 @@ int main(int argc, char* argv[]){
 	->needs("--debug");
 	moses.add_option("-v, --volume", volume, "Volume setting")
 	->default_val(25);
-	moses.add_flag("-m, --measure-performance", measurePerf, "Measure performance in cycles and frames per second")
-	->default_val(false);
 	try {
 		moses.parse(argc, argv);
 	}catch(const CLI::ParseError &e){
@@ -227,8 +229,15 @@ int main(int argc, char* argv[]){
 		bufferSamples[i] = 0;
 	}
 	ghc::FPSCounter fps;
+	std::chrono::microseconds frameTime((uint64_t)(1000000/sys -> getFPS()));
 	SDL_SetWindowTitle(mainWindow, ("MOSES: " + sys -> getName()).c_str());
+	if(uncapFPS){
+		if(SDL_SetRenderVSync(render, 0) == false ){
+			std::cout << "GURU MEDITATION vsync %s\n";
+		}
+	}
 	while(true){
+		auto beforeTime = std::chrono::steady_clock::now();
 		SDL_Event event;
 		while(SDL_PollEvent(&event)){
 			switch( event.type ){
@@ -278,6 +287,16 @@ int main(int argc, char* argv[]){
 		updateDisplay(&sys -> getFrameBuffer(), sys -> getX());
 		if(measurePerf && fps.frameTick(sys->getCycles())){
 			SDL_SetWindowTitle(mainWindow, fps.getStatsString(std::string("MOSES: " ) + sys->getName()));
+		}
+		if(!uncapFPS){
+			auto afterTime = std::chrono::steady_clock::now();
+			if((afterTime - beforeTime) < frameTime){
+				std::chrono::nanoseconds sleep(((frameTime-std::chrono::milliseconds(2)) - (afterTime - beforeTime)));
+				std::this_thread::sleep_for(sleep);
+				while((afterTime - beforeTime) < frameTime){
+					afterTime = std::chrono::steady_clock::now();
+				}
+			}
 		}
 	}
 	finish:

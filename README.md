@@ -16,7 +16,13 @@ cmake --build ./
 ```
 ./MOSES -c, --core <core> -f, --file </path/to/game/>
 ```
-Optional commands: `-s, --scale <integer scaling factor> -v, --volume <integer volume, 0-100>`
+Optional commands: 
+
+`-s, --scale <integer scaling factor>`
+
+`-v, --volume <integer volume, 0-100>`
+
+`-u, --unlimited-framerate`
 
 Supported cores:
 
