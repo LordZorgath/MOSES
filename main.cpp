@@ -167,8 +167,8 @@ int main(int argc, char* argv[]){
 	bool measurePerf = false;
 	bool uncapFPS = false;
 	int scaleFactor;
-	int debugSpeed;
-	std::optional<int> breakPoint;
+	uint64_t debugSpeed;
+	std::optional<uint64_t> breakPoint;
 	float volume;
 	moses.add_flag("-D, --debug", debug, "Enable debug functions");
 	moses.add_flag("-C, --config", readConfigFile, "Config file to load");
@@ -194,9 +194,6 @@ int main(int argc, char* argv[]){
 		std::cout << "GURU MEDITATION CLI: ";
 		return moses.exit(e);
 	}
-	bool debugPause = false;
-	bool dbgPauseEnable = true;
-	double targetFPS = 60.0;
 	std::string core;
 	if(!getline(coreOptions.value(), core, ',')){
 		core = "default";
@@ -211,19 +208,11 @@ int main(int argc, char* argv[]){
 	if(!sys -> checkInit()){
 		cleanExit("core init");
 	}
-	sys -> dbg = debug;
 	sys -> addKey (SDL_GetKeyboardState(nullptr));
 	sys -> setVolume(volume);
-	if(breakPoint.has_value()){
-		sys -> breakpointActive = true;
-		sys -> setPcBreakpoint(breakPoint.value());
-	}
-	if(writeLog.has_value()){
-		sys -> setLogOutput(writeLog.value());
-	}
 	createWindow(sys -> getX(), sys -> getY(), sys -> getSampleFrequency(), sys -> getAudioChannels());
 	scaleDisplay(sys -> getX(), sys -> getY(), scaleFactor);
-	uint32_t bufferSize = (sys -> getSampleFrequency()/targetFPS)*(sys -> getAudioChannels());
+	uint32_t bufferSize = (sys -> getSampleFrequency()/sys -> getFPS())*(sys -> getAudioChannels());
 	int16_t *bufferSamples = new int16_t[bufferSize];
 	for(int i = 0; i < bufferSize; i++){
 		bufferSamples[i] = 0;
@@ -236,65 +225,86 @@ int main(int argc, char* argv[]){
 			std::cout << "GURU MEDITATION vsync %s\n";
 		}
 	}
-	while(true){
-		auto beforeTime = std::chrono::steady_clock::now();
-		SDL_Event event;
-		while(SDL_PollEvent(&event)){
-			switch( event.type ){
-			case SDL_EVENT_KEY_DOWN:
-				if(sys -> dbg){
-					std::cout << std::hex;
-					switch(event.key.key){
-						case SDLK_RSHIFT:
-							dbgPauseEnable = !dbgPauseEnable;
-							std::cout << (dbgPauseEnable ? "STOP\n" : "RUN\n");
-							break;
-						case SDLK_SPACE:
-							debugPause = false;
-							break;
-						case SDLK_UP:
-							sys -> debugStep = fmin(pow(2, 31), sys -> debugStep * 2);
-							std::cout << "DBG SPEED " << +(sys -> debugStep) << "\n";
-							break;
-						case SDLK_DOWN:
-							sys -> debugStep = fmax(1, sys -> debugStep / 2);
-							std::cout << "DBG SPEED " << +(sys -> debugStep) << "\n";
-							break;
-					}
-				}
-				if(event.key.key == SDLK_ESCAPE){
-					goto finish;
-				}
-				break;
-			case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-				goto finish;
-			default:
-				break;
-			}
+	if(debug)[[unlikely]]{
+		bool debugPause = false;
+		bool dbgPauseEnable = true;
+		sys -> debugStep = debugSpeed;
+		if(breakPoint.has_value()){
+			sys -> breakpointActive = true;
+			sys -> setPcBreakpoint(breakPoint.value());
 		}
-		if(sys -> dbg){
+		if(writeLog.has_value()){
+			sys -> setLogOutput(writeLog.value());
+		}
+		SDL_Event event;
+		while(true){
+			while(SDL_PollEvent(&event)){
+				switch( event.type ){
+					case SDL_EVENT_KEY_DOWN:
+						std::cout << std::hex;
+						switch(event.key.key){
+							case SDLK_RSHIFT:
+								dbgPauseEnable = !dbgPauseEnable;
+								std::cout << (dbgPauseEnable ? "STOP\n" : "RUN\n");
+								break;
+							case SDLK_SPACE:
+								debugPause = false;
+								break;
+							case SDLK_UP:
+								sys -> debugStep = fmin(pow(2, 31), sys -> debugStep * 2);
+								std::cout << "DBG SPEED " << +(sys -> debugStep) << "\n";
+								break;
+							case SDLK_DOWN:
+								sys -> debugStep = fmax(1, sys -> debugStep / 2);
+								std::cout << "DBG SPEED " << +(sys -> debugStep) << "\n";
+								break;
+						}
+						if(event.key.key == SDLK_ESCAPE){
+							goto finish;
+						}
+						break;
+					case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+						goto finish;
+				}
+			}
 			if(!debugPause && dbgPauseEnable){
 				sys -> debugCycle();
 				debugPause = true;
 			}else if(!dbgPauseEnable){
 				sys -> debugCycle();
 			}
-		}else{
+			updateDisplay(&sys -> getFrameBuffer(), sys -> getX());
+		}
+	}else{
+		SDL_Event event;
+		while(true){
+			auto beforeTime = std::chrono::steady_clock::now();
+			while(SDL_PollEvent(&event)){
+				switch( event.type ){
+					case SDL_EVENT_KEY_DOWN:
+						if(event.key.key == SDLK_ESCAPE){
+							goto finish;
+						}
+						break;
+					case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+						goto finish;
+				}
+			}
 			sys -> runCycle();
 			SDL_PutAudioStreamData(audioOut, bufferSamples, (SDL_GetAudioStreamAvailable(audioOut) < bufferSize) ? 2*bufferSize : 0);
 			SDL_PutAudioStreamData(audioOut, &sys -> getAudioBuffer(), 2*bufferSize);
-		}
-		updateDisplay(&sys -> getFrameBuffer(), sys -> getX());
-		if(measurePerf && fps.frameTick(sys->getCycles())){
-			SDL_SetWindowTitle(mainWindow, fps.getStatsString(std::string("MOSES: " ) + sys->getName()));
-		}
-		if(!uncapFPS){
-			auto afterTime = std::chrono::steady_clock::now();
-			if((afterTime - beforeTime) < frameTime){
-				std::chrono::nanoseconds sleep(((frameTime-std::chrono::milliseconds(2)) - (afterTime - beforeTime)));
-				std::this_thread::sleep_for(sleep);
-				while((afterTime - beforeTime) < frameTime){
-					afterTime = std::chrono::steady_clock::now();
+			updateDisplay(&sys -> getFrameBuffer(), sys -> getX());
+			if(measurePerf && fps.frameTick(sys->getCycles())){
+				SDL_SetWindowTitle(mainWindow, fps.getStatsString(std::string("MOSES: " ) + sys->getName()));
+			}
+			if(!uncapFPS){
+				auto afterTime = std::chrono::steady_clock::now();
+				if((afterTime - beforeTime) < frameTime){
+					std::chrono::nanoseconds sleep(((frameTime-std::chrono::milliseconds(2)) - (afterTime - beforeTime)));
+					std::this_thread::sleep_for(sleep);
+					while((afterTime - beforeTime) < frameTime){
+						afterTime = std::chrono::steady_clock::now();
+					}
 				}
 			}
 		}

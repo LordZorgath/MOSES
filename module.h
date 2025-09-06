@@ -94,7 +94,6 @@ namespace Cores{
 		
 		uint32_t debugStep = 1;
 		bool breakpointActive = false;
-		bool dbg = false;
 
 		virtual ~Module() = default;
 
