@@ -232,7 +232,7 @@ namespace Cores::Xochip{
 									display[i%128][i/128] = 0;
 								}
 								break;
-							default:
+							default:[[unlikely]]
 								{
 									uint8_t offset = (curOpcode & 0x000F);
 									uint8_t pixelRef;
@@ -263,7 +263,7 @@ namespace Cores::Xochip{
 												}
 											}
 											break;
-										default:
+										default:[[unlikely]]
 											std::cout << "GURU MEDITATION unknown opcode\n";
 											getDebugInfo();
 											break;
@@ -326,7 +326,7 @@ namespace Cores::Xochip{
 										}
 									}
 									break;
-								default:
+								default:[[unlikely]]
 									std::cout << "GURU MEDITATION unknown opcode\n";
 									getDebugInfo();
 									break;
@@ -380,7 +380,7 @@ namespace Cores::Xochip{
 									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] << 1);
 									v[15] = flagRef;
 									break;
-								default:
+								default:[[unlikely]]
 									std::cout << "GURU MEDITATION unknown opcode\n";
 									getDebugInfo();
 									break;
@@ -444,7 +444,7 @@ namespace Cores::Xochip{
 									pc += (bus.read16(pc) == 0xF000) ? 4 : 2;
 								}
 							break;
-							default:
+							default:[[unlikely]]
 								std::cout << "GURU MEDITATION unknown opcode\n";
 								getDebugInfo();
 							break;
@@ -537,13 +537,13 @@ namespace Cores::Xochip{
 									v[a] = bus.flagStore[a];
 								}
 								break;
-							default:
+							default:[[unlikely]]
 								std::cout << "GURU MEDITATION unknown opcode\n";
 								getDebugInfo();
 								break;
 						}
 						break;
-						default:
+						default:[[unlikely]]
 							std::cout << "GURU MEDITATION unknown opcode\n";
 							getDebugInfo();
 							break;

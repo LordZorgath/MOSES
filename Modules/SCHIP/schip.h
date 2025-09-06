@@ -196,7 +196,7 @@ namespace Cores::Schip{
 									}
 								}
 								break;
-							default:
+							default:[[unlikely]]
 								switch(((curOpcode & 0x00F0) >> 4)){
 									case 0x0C: //SCD
 										{
@@ -217,7 +217,7 @@ namespace Cores::Schip{
 											}
 										}
 										break;
-									default:
+									default:[[unlikely]]
 										std::cout << "GURU MEDITATION unknown opcode\n";
 										getDebugInfo();
 										break;
@@ -304,7 +304,7 @@ namespace Cores::Schip{
 									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] << 1);
 									v[15] = flagRef;
 									break;
-								default:
+								default:[[unlikely]]
 									std::cout << "GURU MEDITATION unknown opcode\n";
 									getDebugInfo();
 									break;
@@ -374,7 +374,7 @@ namespace Cores::Schip{
 									pc+=2;
 								}
 							break;
-							default:
+							default:[[unlikely]]
 								std::cout << "GURU MEDITATION unknown opcode\n";
 								getDebugInfo();
 							break;
@@ -448,13 +448,13 @@ namespace Cores::Schip{
 									v[a] = bus.flagStore[a];
 								}
 								break;
-							default:
+							default:[[unlikely]]
 								std::cout << "GURU MEDITATION unknown opcode\n";
 								getDebugInfo();
 								break;
 						}
 						break;
-						default:
+						default:[[unlikely]]
 							std::cout << "GURU MEDITATION unknown opcode\n";
 							getDebugInfo();
 							break;

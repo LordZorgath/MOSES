@@ -128,7 +128,7 @@ namespace Cores::Chip8{
 									pc = stack[sp];
 								}
 								break;
-							default:
+							default:[[unlikely]]
 								std::cout << "GURU MEDITATION unknown opcode\n";
 								getDebugInfo();
 								break;
@@ -216,7 +216,7 @@ namespace Cores::Chip8{
 									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] << 1);
 									v[15] = flagRef;
 									break;
-								default:
+								default:[[unlikely]]
 									std::cout << "GURU MEDITATION unknown opcode\n";
 									getDebugInfo();
 									break;
@@ -283,7 +283,7 @@ namespace Cores::Chip8{
 									pc+=2;
 								}
 							break;
-							default:
+							default:[[unlikely]]
 								std::cout << "GURU MEDITATION unknown opcode\n";
 								getDebugInfo();
 							break;
@@ -346,13 +346,13 @@ namespace Cores::Chip8{
 									i++;
 								}
 								break;
-							default:
+							default:[[unlikely]]
 								std::cout << "GURU MEDITATION unknown opcode\n";
 								getDebugInfo();
 								break;
 						}
 						break;
-						default:
+						default:[[unlikely]]
 							std::cout << "GURU MEDITATION unknown opcode\n";
 							getDebugInfo();
 							break;
