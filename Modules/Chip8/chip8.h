@@ -495,24 +495,12 @@ namespace Cores::Chip8{
 		}
 		
 		System(std::map<std::string, std::string> args):Module("Chip-8", 15, 64, 32, 1, 48000, 60.0){
-			std::stringstream coreSettings;
-			coreSettings << args.at("core");
-			std::string curOption;
-			while(getline(coreSettings, curOption, ',')){
-				std::stringstream key;
-				std::string value;
-				key << curOption;
-				getline(key, value, '=');
-				if(value == "nodisplaywait"){
-					cpu.displayWait = false;
+			for(auto& [key, value] : args){
+				if(key == "speed"){
+					bclk = std::stoi(value);
 				}
-				if(value == "speed"){
-					getline(key, value, '=');
-					if(std::stoi(value) < 1){
-						std::cout << "GURU MEDITATION invalid ipf setting\n";
-					}else{
-						bclk = std::stoi(value);
-					}
+				if(key == "nodisplaywait"){
+					cpu.displayWait = false;
 				}
 			}
 			bus.loadROM(readFile(args.at("file"), 3584));

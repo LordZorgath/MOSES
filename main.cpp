@@ -15,6 +15,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 //File created Thursday 19th of June, 2025
+
+#define M_PI 3.14159265358979323846
+
 #include <memory>
 #include <string>
 #include <iostream>
@@ -22,7 +25,6 @@
 #include <vector>
 #include <filesystem>
 #include <cstdlib>
-#include <cmath>
 #include <cstdint>
 #include <sstream>
 #include <stdexcept>
@@ -103,54 +105,64 @@ void cleanExit(){
 	exit(0);
 }
 
-auto getCore(std::string system, std::map<std::string, std::string> args) -> std::unique_ptr<Cores::Module>{
-	if(system == "nes"){ return std::make_unique<Cores::Nes::System>(args); }
-	else if(system == "chip8"){ return std::make_unique<Cores::Chip8::System>(args); }
-	else if(system == "schip"){ return std::make_unique<Cores::Schip::System>(args); }
-	else if(system == "xochip"){ return std::make_unique<Cores::Xochip::System>(args); }
+auto getCore(std::map<std::string, std::string> args) -> std::unique_ptr<Cores::Module>{
+	std::stringstream system;
+	system << args.at("core");
+	std::string core;
+	getline(system, core, ',');
+	if(core == "nes"){ return std::make_unique<Cores::Nes::System>(args); }
+	else if(core == "chip8"){ return std::make_unique<Cores::Chip8::System>(args); }
+	else if(core == "schip"){ return std::make_unique<Cores::Schip::System>(args); }
+	else if(core == "xochip"){ return std::make_unique<Cores::Xochip::System>(args); }
 	else {
-		cleanExit("unknown core: " + system);
+		cleanExit("unknown core: " + core);
 		return 0;
 	}
 }
 
-std::map<std::string, std::string> cfgParse(std::string file, std::string core){
+std::map<std::string, std::string> cfgParse(std::string core, std::string file){
 	const int globalArgCount = 3;
 	std::array<std::string, globalArgCount> validSettings = {"scale", "volume", "file"};
 	std::map<std::string, std::string> ret;
 	std::ifstream config(file);
-	if(!config){
-		throw std::invalid_argument("404 file not found");
-	}
-	json settings = json::parse(config);
-	if(!settings.contains("cores")){
-		throw std::invalid_argument("config file invalid");
-	}
-	if(core == "default"){
-		if(!settings.at("cores").contains("default")){
-			throw std::invalid_argument("no default core");
+	try{
+		if(!config){
+			throw std::invalid_argument("404 file not found");
 		}
-		core = settings["cores"]["default"];
-	}
-	if(!settings.at("cores").contains(core)){
-		throw std::invalid_argument("unknown core: " + core);
-	}
-	for(auto& i : settings["cores"][core].items()){
-		for(auto& j : validSettings){
-			if(i.key() == j){
-				ret.insert_or_assign(i.key(), to_string(i.value()));
-				break;
+		json settings = json::parse(config);
+		if(!settings.contains("cores")){
+			throw std::invalid_argument("config file invalid");
+		}
+		if(core == "default"){
+			if(!settings.at("cores").contains("default")){
+				throw std::invalid_argument("no default core");
+			}
+			core = settings["cores"]["default"];
+			ret.insert_or_assign("core", core);
+		}
+		if(!settings.at("cores").contains(core)){
+			throw std::invalid_argument("unknown core: " + core);
+		}
+		for(auto& i : settings["cores"][core].items()){
+			for(auto& j : validSettings){
+				if(i.key() == j){
+					ret.insert_or_assign(i.key(), to_string(i.value()));
+					break;
+				}
+			}
+			if(i.key() == "core specific"){
+				json cmd = settings["cores"][core]["core specific"];
+				for(auto& j : cmd.items()){
+					ret.insert_or_assign(j.key(), to_string(j.value()));
+				}
 			}
 		}
-		if(i.key() == "core specific"){
-			json cmd = settings["cores"][core]["core specific"];
-			for(auto& j : cmd.items()){
-				ret.insert_or_assign(j.key(), to_string(j.value()));
-			}
-		}
+	}catch(std::invalid_argument &e){
+		cleanExit(e.what());
 	}
-	for(const auto& [key, value] : ret){
-		std::cout << key << value << std::endl;
+	for(auto& [key, value] : ret){
+		value.erase(remove(value.begin(), value.end(), '\"' ),value.end());
+		//std::cout << key << " " << value << std::endl;
 	}
 	return ret;
 }
@@ -162,23 +174,26 @@ int main(int argc, char* argv[]){
 	std::optional<std::string> readConfigFile;
 	std::optional<std::string> writeLog;
 	std::optional<std::stringstream> coreOptions;
+	std::optional<uint64_t> breakPoint;
+	std::optional<uint64_t> debugSpeed;
 	std::string file;
 	bool debug = false;
 	bool measurePerf = false;
 	bool uncapFPS = false;
 	int scaleFactor;
-	uint64_t debugSpeed;
-	std::optional<uint64_t> breakPoint;
-	float volume;
+	int volume;
 	moses.add_flag("-D, --debug", debug, "Enable debug functions");
-	moses.add_flag("-C, --config", readConfigFile, "Config file to load");
 	moses.add_flag("-m, --measure-performance", measurePerf, "Measure performance in cycles and frames per second");
 	moses.add_flag("-u, --unlimited-framerate", uncapFPS, "Run the core as fast as possible instead of limiting framerate");
-	moses.add_option("-c, --core", coreOptions, "Core and core-specific options to load");
+	moses.add_option("-c, --core", coreOptions, "Core and core-specific options to load")
+	->default_val("default");
+	moses.add_option("-C, --config", readConfigFile, "Config file to load")
+	->excludes("--core");
+	moses.add_option("-f, --file", file, "File to be loaded")
+	->excludes("--config")
+	->needs("--core");
 	moses.add_option("-s, --scale", scaleFactor, "Integer scaling factor")
 	->default_val(1);
-	moses.add_option("-f, --file", file, "File to be loaded")
-	->required();
 	moses.add_option("-d, --debugspeed", debugSpeed, "Number of ticks to run before stopping in debug mode")
 	->default_val(1)
 	->needs("--debug");
@@ -195,23 +210,38 @@ int main(int argc, char* argv[]){
 		return moses.exit(e);
 	}
 	std::string core;
-	if(!getline(coreOptions.value(), core, ',')){
-		core = "default";
-	}
+	getline(coreOptions.value(), core, ',');
 	if(readConfigFile.has_value()){
 		globalSettings = cfgParse(core, readConfigFile.value());
 	}else{
 		globalSettings.insert_or_assign("core", coreOptions.value().str());
 		globalSettings.insert_or_assign("file", file);
+		globalSettings.insert_or_assign("volume", std::to_string(volume));
+		globalSettings.insert_or_assign("scale", std::to_string(scaleFactor));
+		std::stringstream coreSettings;
+		coreSettings << globalSettings.at("core");
+		std::string curOption;
+		while(getline(coreSettings, curOption, ',')){
+			std::stringstream current;
+			current << curOption;
+			std::string key;
+			if(getline(current, key, '=')){
+				std::string value;
+				getline(current, value, '=');
+				globalSettings.insert_or_assign(key, value);
+			}else{
+				globalSettings.insert_or_assign(key, nullptr);
+			}
+		}
 	}
-	std::unique_ptr<Module> sys = getCore(core, globalSettings);
+	std::unique_ptr<Module> sys = getCore(globalSettings);
 	if(!sys -> checkInit()){
 		cleanExit("core init");
 	}
 	sys -> addKey (SDL_GetKeyboardState(nullptr));
-	sys -> setVolume(volume);
+	sys -> setVolume(std::stoi(globalSettings.at("volume")));
 	createWindow(sys -> getX(), sys -> getY(), sys -> getSampleFrequency(), sys -> getAudioChannels());
-	scaleDisplay(sys -> getX(), sys -> getY(), scaleFactor);
+	scaleDisplay(sys -> getX(), sys -> getY(), std::stoi(globalSettings.at("scale")));
 	uint32_t bufferSize = (sys -> getSampleFrequency()/sys -> getFPS())*(sys -> getAudioChannels());
 	int16_t *bufferSamples = new int16_t[bufferSize];
 	for(int i = 0; i < bufferSize; i++){
@@ -228,7 +258,9 @@ int main(int argc, char* argv[]){
 	if(debug)[[unlikely]]{
 		bool debugPause = false;
 		bool dbgPauseEnable = true;
-		sys -> debugStep = debugSpeed;
+		if(debugSpeed.has_value()){
+			sys -> debugStep = debugSpeed.value();
+		}
 		if(breakPoint.has_value()){
 			sys -> breakpointActive = true;
 			sys -> setPcBreakpoint(breakPoint.value());
@@ -251,7 +283,7 @@ int main(int argc, char* argv[]){
 								debugPause = false;
 								break;
 							case SDLK_UP:
-								sys -> debugStep = fmin(pow(2, 31), sys -> debugStep * 2);
+								sys -> debugStep = fmin(pow(2, 30), sys -> debugStep * 2);
 								std::cout << "DBG SPEED " << +(sys -> debugStep) << "\n";
 								break;
 							case SDLK_DOWN:

@@ -2,10 +2,6 @@
 //Friday 20th of June, 2025
 #pragma once
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
 namespace Cores{
 	
 	class Module{
@@ -36,7 +32,7 @@ namespace Cores{
 			std::vector<uint8_t> ret;
 			std::ifstream file(path, std::ifstream::binary);
 			if(!file.good()){
-				std::cout << "GURU MEDITATION no file\n";
+				std::cout << "GURU MEDITATION no rom\n";
 				init = false;
 				return ret;
 			}else{
@@ -45,7 +41,7 @@ namespace Cores{
 				file.seekg(0, std::ios_base::end);
 				fileSize = file.tellg();
 				if(fileSize > maxFilesize){
-					std::cout << "GURU MEDITATION file too large\n";
+					std::cout << "GURU MEDITATION rom file too large\n";
 					init = false;
 					return ret;
 				}

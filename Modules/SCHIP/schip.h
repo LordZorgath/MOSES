@@ -108,11 +108,11 @@ namespace Cores::Schip{
 			return (st > 0);
 		}
 		
-		int getScreenX(){
+		uint8_t getScreenX(){
 			return (hiresMode ? 128 : 64);
 		}
 		
-		int getScreenY(){
+		uint8_t getScreenY(){
 			return (hiresMode ? 64 : 32);	
 		}
 		
@@ -607,27 +607,15 @@ namespace Cores::Schip{
 		}
 		
 		System(std::map<std::string, std::string> args):Module("SCHIP", 30, 128, 64, 1, 48000, 60.0){
-			std::stringstream coreSettings;
-			coreSettings << args.at("core");
-			std::string curOption;
-			while(getline(coreSettings, curOption, ',')){
-				std::stringstream key;
-				std::string value;
-				key << curOption;
-				getline(key, value, '=');
-				if(value == "nodisplaywait"){
+			for(auto& [key, value] : args){
+				if(key == "speed"){
+					bclk = std::stoi(value);
+				}
+				if(key == "nodisplaywait"){
 					cpu.displayWait = false;
 				}
-				if(value == "legacy"){
+				if(key == "legacy"){
 					cpu.legacy = true;
-				}
-				if(value == "speed"){
-					getline(key, value, '=');
-					if(std::stoi(value) < 1){
-						std::cout << "GURU MEDITATION invalid ipf setting\n";
-					}else{
-						bclk = std::stoi(value);
-					}
 				}
 			}
 			bus.loadROM(readFile(args.at("file"), 3584));
