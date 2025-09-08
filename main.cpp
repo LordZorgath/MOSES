@@ -25,6 +25,7 @@
 #include <vector>
 #include <filesystem>
 #include <cstdlib>
+#include <cmath>
 #include <cstdint>
 #include <sstream>
 #include <stdexcept>
