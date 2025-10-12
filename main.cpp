@@ -37,11 +37,11 @@
 #include "vendored/CLI11/include/CLI/CLI.hpp"
 #include "vendored/ghc/fpscount.hpp"
 #include "Modules/Chip8/chip8.h"
+#include "Modules/Chip8/schip.h"
+#include "Modules/Chip8/xochip.h"
 #include "Modules/NES/nes.h"
 #include "Modules/AppleII/appleii.h"
 #include "Modules/CPUTest/cputest.h"
-#include "Modules/XO-Chip/xochip.h"
-#include "Modules/SCHIP/schip.h"
 
 using namespace Cores;
 using json = nlohmann::json;
@@ -256,6 +256,7 @@ int main(int argc, char* argv[]){
 			std::cout << "GURU MEDITATION vsync %s\n";
 		}
 	}
+	SDL_Event event;
 	if(debug)[[unlikely]]{
 		bool debugPause = false;
 		bool dbgPauseEnable = true;
@@ -269,7 +270,6 @@ int main(int argc, char* argv[]){
 		if(writeLog.has_value()){
 			sys -> setLogOutput(writeLog.value());
 		}
-		SDL_Event event;
 		while(true){
 			while(SDL_PollEvent(&event)){
 				switch( event.type ){
@@ -309,7 +309,6 @@ int main(int argc, char* argv[]){
 			updateDisplay(&sys -> getFrameBuffer(), sys -> getX());
 		}
 	}else{
-		SDL_Event event;
 		while(true){
 			auto beforeTime = std::chrono::steady_clock::now();
 			while(SDL_PollEvent(&event)){

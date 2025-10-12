@@ -11,7 +11,7 @@ namespace Cores::Chip8{
 	
 		public:
 		void loadROM(std::vector<uint8_t> rom){
-			for(int i = 0; i < rom.size(); i++){
+			for(int i = 0; i < rom.size(); ++i){
 				mem[0x200+i] = rom[i];
 			}
 			uint8_t pixelFont[16*5] = {
@@ -33,31 +33,17 @@ namespace Cores::Chip8{
 				0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
 				0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 			};
-			for(int i = 0; i < (16*5); i++){
+			for(int i = 0; i < (16*5); ++i){
 				mem[i] = pixelFont[i];
 			}
 		}
 
-		uint_fast8_t read(uint16_t addr){
-			if(addr > 4095){
-				std::cout << "GURU MEDITATION mem out of bounds read\n";
-				return 0;
-			}else{
-				return mem[addr];
-			}
-		}
+		inline uint_fast8_t read(uint16_t addr){ return mem[(addr % 4096)]; }
 		
-		uint_fast16_t readOpcode(uint16_t addr){
-			return (mem[(addr % 4096)] << 8) | mem[((addr+1) % 4096)];
-		}
+		inline uint_fast16_t readOpcode(uint16_t addr){ return (mem[(addr % 4096)] << 8) | mem[((addr+1) % 4096)]; }
 		
-		void write(uint8_t val, uint16_t addr){
-			if(addr > 4095){
-				std::cout << "GURU MEDITATION mem out of bounds write\n";
-			}else{
-				mem[addr] = val;
-			}
-		}
+		inline void write(uint8_t val, uint16_t addr){ mem[(addr % 4096)] = val; }
+		
 	} bus;
 	
 	struct{
@@ -65,32 +51,30 @@ namespace Cores::Chip8{
 		
 		private:
 		//Register definitions
-		uint8_t v[16];
 		uint16_t i = 0;
 		uint16_t pc = 0x200; //Program counter
+		uint8_t v[16]; //Registers
 		uint8_t sp = 0; //Stack pointer
 		uint8_t dt = 0; //Delay timer
 		uint8_t st = 0; //Sound timer
 
 		//Variables for the interpreter
 		uint_fast16_t curOpcode;
-		uint16_t stack[12];
+		uint16_t stack[256];
 
 		public:
+		bool displayWait = true;
 		bool key[16];
 		uint8_t tempKey = 16;
 		uint8_t display[64][32];
-		bool displayWait = true;
 		uint64_t cycles = 0;
 
-		bool getSound(){
-			return (st > 0);
-		}
+		inline bool getSound(){ return (st > 0); }
 		
 		void getDebugInfo(){
 			std::cout << std::hex << std::endl;
 			std::cout << "KEY ";
-			for(int i = 0; i < 16; i++){
+			for(int i = 0; i < 16; ++i){
 				if(key[i]){
 					std::cout << +i;
 				}
@@ -101,7 +85,7 @@ namespace Cores::Chip8{
 			std::cout << "SP " << +sp << "\n";
 			std::cout << "DT " << +dt << "\n";
 			std::cout << "I " << i << "\n";
-			for(int i = 0; i < 16; i++){
+			for(int i = 0; i < 16; ++i){
 				std::cout << "V" << i << " " << +v[i] << "\n";
 			}
 		}
@@ -109,24 +93,20 @@ namespace Cores::Chip8{
 		inline void tick(uint32_t steps){
 			dt = (dt == 0) ? 0 : --dt;
 			st = (st == 0) ? 0 : --st;
-			for(uint32_t a = 0; a < steps; a++){
+			for(uint32_t a = 0; a < steps; ++a){
 				curOpcode = bus.readOpcode(pc);
 				pc+=2;
 				switch((curOpcode >> 12)){
-					case 0x00:
+					case 0x0:
 						switch(curOpcode){
-							case 0x00E0: //CLS
-								for(int i = 0; i < 64*32; i++){
+							case 0xE0: //CLS
+								for(int i = 0; i < 64*32; ++i){
 									display[i%64][i/64] = false;
 								}
 								break;
-							case 0x00EE: //RET
-								if(sp == 0){
-									std::cout << "GURU MEDITATION return outside of subroutine\n";
-								}else{
-									sp--;
-									pc = stack[sp];
-								}
+							case 0xEE: //RET
+								sp--;
+								pc = stack[sp];
 								break;
 							default:[[unlikely]]
 								std::cout << "GURU MEDITATION unknown opcode\n";
@@ -134,31 +114,27 @@ namespace Cores::Chip8{
 								break;
 						}
 						break;
-					case 0x01: //JP
-						pc = (curOpcode & 0x0FFF);
+					case 0x1: //JP
+						pc = (curOpcode & 0xFFF);
 						break;
-					case 0x02: //CALL
-						if(sp > 11){
-							std::cout << "GURU MEDITATION too many nested subroutines\n";
-						}else{
-							stack[sp] = pc;
-							sp++;
-							pc = (curOpcode & 0x0FFF);
-						}
+					case 0x2: //CALL
+						stack[sp] = pc;
+						sp++;
+						pc = (curOpcode & 0xFFF);
 						break;
-					case 0x03: //SE
-						if(v[((curOpcode & 0x0F00) >> 8)] == (curOpcode & 0x00FF)){
+					case 0x3: //SE
+						if(v[((curOpcode >> 8) & 0xF)] == (curOpcode & 0xFF)){
 							pc+=2;
 						}
 						break;
-					case 0x04: //SNE
-						if(v[((curOpcode & 0x0F00) >> 8)] != (curOpcode & 0x00FF)){
+					case 0x4: //SNE
+						if(v[((curOpcode >> 8) & 0xF)] != (curOpcode & 0xFF)){
 							pc+=2;
 						}
 						break;
-					case 0x05: //SE 
-						if((curOpcode & 0x000F) == 0){
-							if(v[((curOpcode & 0x0F00) >> 8)] == v[((curOpcode & 0x00F0) >> 4)]){
+					case 0x5: //SE 
+						if((curOpcode & 0xF) == 0){
+							if(v[((curOpcode >> 8) & 0xF)] == v[((curOpcode >> 4) & 0xF)]){
 								pc+=2;
 							}
 						}else{
@@ -166,55 +142,66 @@ namespace Cores::Chip8{
 							getDebugInfo();
 						}
 						break;
-					case 0x06: //LD
-						v[((curOpcode & 0x0F00) >> 8)] = (curOpcode & 0x00FF);
+					case 0x6: //LD
+						v[((curOpcode >> 8) & 0xF)] = (curOpcode & 0xFF);
 						break;
-					case 0x07: //ADD
-						v[((curOpcode & 0x0F00) >> 8)] += (curOpcode & 0x00FF);
+					case 0x7: //ADD
+						v[((curOpcode >> 8) & 0xF)] += (curOpcode & 0xFF);
 						break;
-					case 0x08:
+					case 0x8:
 						{
-							uint8_t flagRef;
-							switch(curOpcode & 0x000F){
+							auto& regX = v[((curOpcode >> 8) & 0xF)];
+							auto& regY = v[((curOpcode >> 4) & 0xF)];
+							switch(curOpcode & 0xF){
 								case 0x0: //LD
-									v[((curOpcode & 0x0F00) >> 8)] = v[((curOpcode & 0x00F0) >> 4)];
+									regX = regY;
 									break;
 								case 0x1: //OR
-									v[((curOpcode & 0x0F00) >> 8)] |= v[((curOpcode & 0x00F0) >> 4)];
+									regX |= regY;
 									v[15] = false;
 									break;
 								case 0x2: //AND
-									v[((curOpcode & 0x0F00) >> 8)] &= v[((curOpcode & 0x00F0) >> 4)];
+									regX &= regY;
 									v[15] = false;
 									break;
 								case 0x3: //XOR
-									v[((curOpcode & 0x0F00) >> 8)] ^= v[((curOpcode & 0x00F0) >> 4)];
+									regX ^= regY;
 									v[15] = false;
 									break;
 								case 0x4: //ADD
-									flagRef = (v[((curOpcode & 0x0F00) >> 8)] + v[((curOpcode & 0x00F0) >> 4)] >= 256);
-									v[((curOpcode & 0x0F00) >> 8)] += v[((curOpcode & 0x00F0) >> 4)];
-									v[15] = flagRef;
+									{
+										auto flagRef = (regX + regY >= 256);
+										regX += regY;
+										v[15] = flagRef;
+									}
 									break;
 								case 0x5: //SUB
-									flagRef = (v[((curOpcode & 0x0F00) >> 8)] >= v[((curOpcode & 0x00F0) >> 4)]);
-									v[((curOpcode & 0x0F00) >> 8)] -= v[((curOpcode & 0x00F0) >> 4)];
-									v[15] = flagRef;
+									{
+										auto flagRef = (regX >= regY);
+										regX -= regY;
+										v[15] = flagRef;
+									}
 									break;
 								case 0x6: //SHR
-									flagRef = (v[((curOpcode & 0x00F0) >> 4)] & 0b00000001);
-									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] >> 1);
-									v[15] = flagRef;
+									{
+										auto flagRef = (regY & 1);
+										regX = (regY >> 1);
+										v[15] = flagRef;
+									}
 									break;
 								case 0x7: //SUBN
-									flagRef = (v[((curOpcode & 0x00F0) >> 4)] >= v[((curOpcode & 0x0F00) >> 8)]);
-									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] - v[((curOpcode & 0x0F00) >> 8)]);
-									v[15] = flagRef;
+									{
+										auto flagRef = (regY >= regX);
+										regX = (regY - regX);
+										v[15] = flagRef;
+									}
 									break;
 								case 0xE: //SHL
-									flagRef = (v[((curOpcode & 0x00F0) >> 4)] >> 7);
-									v[((curOpcode & 0x0F00) >> 8)] = (v[((curOpcode & 0x00F0) >> 4)] << 1);
-									v[15] = flagRef;
+									{
+										auto flagRef = (regY >> 7);
+										regX = (regY << 1);
+										v[15] = flagRef;
+									}
 									break;
 								default:[[unlikely]]
 									std::cout << "GURU MEDITATION unknown opcode\n";
@@ -223,46 +210,43 @@ namespace Cores::Chip8{
 							}
 						}
 						break;
-					case 0x09: //SNE
-						if((curOpcode & 0x000F) == 0){
-							if(v[((curOpcode & 0x0F00) >> 8)] != v[((curOpcode & 0x00F0) >> 4)]){
+					case 0x9: //SNE
+						if((curOpcode & 0xF) == 0){
+							if(v[((curOpcode >> 8) & 0xF)] != v[((curOpcode >> 4) & 0xF)]){
 								pc+=2;
 							}
 						}
 						break;
-					case 0x0A: //LD
-						i = (curOpcode & 0x0FFF);
+					case 0xA: //LD
+						i = (curOpcode & 0xFFF);
 						break;
-					case 0x0B: //JP
-						pc = ((curOpcode & 0x0FFF) + v[0]);
+					case 0xB: //JP
+						pc = ((curOpcode & 0xFFF) + v[0]);
 						break;
-					case 0x0C: //RND
-						v[((curOpcode & 0x0F00) >> 8)] = (rand() & (curOpcode & 0x00FF));
+					case 0xC: //RND
+						v[((curOpcode >> 8) & 0xF)] = (rand() & (curOpcode & 0xFF));
 						break;
-					case 0x0D: //DRW
+					case 0xD: //DRW
 						{
-							uint8_t posX = (v[((curOpcode & 0x0F00) >> 8)] & 63);
-							uint8_t posY = (v[((curOpcode & 0x00F0) >> 4)] & 31);
-							uint8_t pixels;
+							uint8_t posX = (v[((curOpcode >> 8) & 0xF)] % 64);
+							uint8_t posY = (v[((curOpcode >> 4) & 0xF)] % 32);
 							v[15] = false;
-							for(uint8_t h = 0; h < (curOpcode & 0x000F); ++h){
+							for(uint8_t h = 0; h < (curOpcode & 0xF); ++h){
 								if((h + posY) > 31){
 									break;
 								}
-								pixels = bus.read(i+h);
-								for(uint8_t w = posX; w < (posX+8); ++w){
-									if(w > 63){
-										break;
-									}
-									auto& disp = display[w][(posY+h)];
-									if(pixels & disp){
-										v[15] = true;
-									}
-									disp ^= (pixels & 128);
-									pixels <<= 1;
-									if(pixels == 0){
-										break;
-									}
+								uint8_t line = bus.read(i+h);
+								uint8_t curX = posX;
+								draw:
+								auto& disp = display[curX][(posY+h)];
+								if(line & disp){
+									v[15] = true;
+								}
+								disp ^= (line & 128);
+								line <<= 1;
+								++curX;
+								if(line && curX < 64){
+									goto draw;
 								}
 							}
 							if(displayWait){
@@ -271,15 +255,15 @@ namespace Cores::Chip8{
 							}
 						}
 						break;
-					case 0x0E:
-						switch((curOpcode & 0x00FF)){
+					case 0xE:
+						switch((curOpcode & 0xFF)){
 							case 0x9E: //SKP
-								if(key[v[((curOpcode & 0x0F00) >> 8)] & 0x0F]){
+								if(key[v[((curOpcode >> 8) & 0xF)] & 0xF]){
 									pc+=2;
 								}
 							break;
 							case 0xA1: //SKNP
-								if(!key[v[((curOpcode & 0x0F00) >> 8)] & 0x0F]){
+								if(!key[v[((curOpcode >> 8) & 0xF)] & 0xF]){
 									pc+=2;
 								}
 							break;
@@ -289,13 +273,13 @@ namespace Cores::Chip8{
 							break;
 						}
 						break;
-					case 0x0F:
-						switch(curOpcode & 0x00FF){
-							case 0x07: //LD
-								v[(curOpcode & 0x0F00) >> 8] = dt;
+					case 0xF:
+						switch(curOpcode & 0xFF){
+							case 0x7: //LD
+								v[((curOpcode >> 8) & 0xF)] = dt;
 								break;
-							case 0x0A: //LD
-								for(int i = 0; i < 16; i++){
+							case 0xA: //LD
+								for(int i = 0; i < 16; ++i){
 									if(key[i]){
 										tempKey = i;
 										pc-=2;
@@ -303,7 +287,7 @@ namespace Cores::Chip8{
 										return;
 									}else if(i == 15){
 										if(tempKey != 16){
-											v[((curOpcode & 0x0F00) >> 8)] = tempKey;
+											v[((curOpcode >> 8) & 0xF)] = tempKey;
 											tempKey = 16;
 											break;
 										}else{
@@ -315,35 +299,35 @@ namespace Cores::Chip8{
 								}
 								break;
 							case 0x15: //LD
-								dt = v[((curOpcode & 0x0F00) >> 8)];
+								dt = v[((curOpcode >> 8) & 0xF)];
 								break;
 							case 0x18: //LD
-								st = v[((curOpcode & 0x0F00) >> 8)];
+								st = v[((curOpcode >> 8) & 0xF)];
 								break;
 							case 0x1E: //ADD
-								i += v[((curOpcode & 0x0F00) >> 8)];
+								i += v[((curOpcode >> 8) & 0xF)];
 								break;
 							case 0x29: //LD
-								i = (v[((curOpcode & 0x0F00) >> 8)] & 0x0F) * 5;
+								i = (v[((curOpcode >> 8) & 0xF)] & 0xF) * 5;
 								break;
 							case 0x33: //LD
 								{
-									uint8_t num = v[((curOpcode & 0x0F00) >> 8)];
+									auto& num = v[((curOpcode >> 8) & 0xF)];
 									bus.write(num / 100, i);
 									bus.write(num / 10 % 10, i+1);
 									bus.write(num % 10, i+2);
 								}
 								break;
 							case 0x55: //LD
-								for(int a = 0; a <= ((curOpcode & 0x0F00) >> 8); a++){
+								for(int a = 0; a <= ((curOpcode >> 8) & 0xF); ++a){
 									bus.write(v[a], i);
-									i++;
+									++i;
 								}
 								break;
 							case 0x65: //LD
-								for(int a = 0; a <= ((curOpcode & 0x0F00) >> 8); a++){
+								for(int a = 0; a <= ((curOpcode >> 8) & 0xF); ++a){
 									v[a] = bus.read(i);
-									i++;
+									++i;
 								}
 								break;
 							default:[[unlikely]]
@@ -363,7 +347,7 @@ namespace Cores::Chip8{
 		
 		inline std::string loggedTick(uint32_t steps){
 			std::stringstream ret;
-			for(int a = 0; a < steps; a++){
+			for(int a = 0; a < steps; ++a){
 				ret << std::hex << std::setfill('0') << "[" << std::setw(8) << +cycles << "] ";
 				for(int b = 0; b < 16; b++){
 					ret << std::setw(1);
@@ -434,7 +418,7 @@ namespace Cores::Chip8{
 			audioPhase %= sampleFreq;
 			if(cpu.getSound()){
 				lastFrame = true;
-				for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
+				for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); ++i){
 					double time = i/(double)sampleFreq;
 					audioBuffer[(i-audioPhase)] = std::sin(freq*time)*(volume * 32767);
 				}
@@ -443,7 +427,7 @@ namespace Cores::Chip8{
 				if(lastFrame){
 					lastFrame = false;
 					bool silent = false;
-					for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); i++){
+					for(int i = audioPhase; i < (audioPhase + (sampleFreq/targetFPS)); ++i){
 						double time = i/(double)sampleFreq;
 						if(std::sin(freq*time)*(volume * 32767) <= 10.0f && std::sin(freq*time)*(volume * 32767) >= -10.0f || silent){
 							silent = true;
@@ -453,7 +437,7 @@ namespace Cores::Chip8{
 						}
 					}
 				}else{
-					for(int i = 0; i < (sampleFreq/targetFPS); i++){
+					for(int i = 0; i < (sampleFreq/targetFPS); ++i){
 						audioBuffer[i] = 0;
 					}
 				}
